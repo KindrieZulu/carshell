@@ -1,4 +1,6 @@
+using System.Net.Http.Headers;
 using CarShell.Web.Data;
+using CarShell.Web.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -40,6 +42,27 @@ builder.Services.AddAuthorization(options =>
     // has an active subscription)" — an authorization rule change, not a
     // new auth system.
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+});
+
+// Distance + Price Filtering: postcodes.io resolves a postcode to lat/lng
+// once per postcode, cached in PostcodeGeocodes.
+builder.Services.AddHttpClient<IGeocodingService, PostcodesIoGeocodingService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.postcodes.io/");
+});
+
+// Image Upload Pipeline: talks to Supabase Storage's REST API using the
+// service-role key, never exposed to the client. Needs Supabase:Url and
+// Supabase:ServiceRoleKey configured to actually work end-to-end.
+builder.Services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>((sp, client) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    client.BaseAddress = new Uri($"{config["Supabase:Url"]}/storage/v1/");
+    var serviceRoleKey = config["Supabase:ServiceRoleKey"];
+    if (!string.IsNullOrEmpty(serviceRoleKey))
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", serviceRoleKey);
+    }
 });
 
 builder.Services.AddRazorPages();

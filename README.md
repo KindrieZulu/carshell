@@ -32,12 +32,40 @@ gitignored on purpose.
 - Search, filtering (price, distance via PostGIS, make/model/year/engine capacity/fuel/
   transmission/body type), and listing detail: implemented, both as JSON (`/api/listings`) and
   as the server-rendered pages (`/`, `/listings/{id}`).
-- Creating/editing/deleting a listing, and the image upload flow: stubbed (`501 Not Implemented`)
-  with `TODO` comments — they depend on a geocoding call and Supabase Storage integration that
-  aren't wired up in this scaffold yet.
+- Creating, editing, and deleting a listing: implemented
+  (`POST`/`PATCH`/`DELETE /api/listings/{id}`) — VIN format validation, per-seller
+  duplicate-VIN rejection, postcode
+  geocoding via postcodes.io (cached in `PostcodeGeocodes`), and an append-only
+  `ListingStatusEvents` row on every status change. Delete is a soft delete (`status = removed`)
+  so sold/dispatched reporting keeps working against archived listings.
+- The image upload pipeline: implemented (`POST /api/listings/{id}/images/upload-url` and
+  `/confirm`) against Supabase Storage's REST API — pre-signed direct upload, then a
+  server-side re-check of the uploaded object's actual size and content type on confirm. This
+  needs a real Supabase project's `Supabase:ServiceRoleKey` to work end-to-end; it hasn't been
+  exercised against a live bucket yet.
 - The first admin account: no signup UI. Create the Supabase Auth user by hand, then insert the
   matching row into `users` with `role = 'admin'` directly — see "Bootstrapping the first admin"
   in the design doc.
+- A privacy policy page (`/Privacy`) with the Phase 1 baseline content from the design doc's Data
+  Protection & Privacy section — a starting draft, not reviewed legal text.
+
+## Tests
+
+`CarShell.Web.Tests` covers VIN validation, the geocoding cache, and the search/write paths as
+integration tests against a real Postgres+PostGIS database (an in-memory provider can't
+reproduce the PostGIS radius filter) — the design doc calls this out explicitly as a Phase 0
+must-have. One test hits the real postcodes.io API.
+
+```bash
+createdb -U postgres -h localhost -p 5432 carshell_test
+dotnet ef database update --project CarShell.Web/CarShell.Web.csproj --connection "Host=localhost;Port=5432;Database=carshell_test;Username=postgres;Password=<yours>"
+dotnet test
+```
+
+Set `CARSHELL_TEST_DB` to point tests at a different connection string; it defaults to
+`Host=localhost;Port=5432;Database=carshell_test;Username=postgres;Password=123passed`.
+`.github/workflows/ci.yml` runs the same suite against a `postgis/postgis` service container on
+every push and PR to `main`.
 
 ## Bootstrapping reference data
 

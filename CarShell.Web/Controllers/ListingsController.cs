@@ -1,24 +1,38 @@
+using CarShell.Web.Auth;
 using CarShell.Web.Data;
 using CarShell.Web.Data.Entities;
+using CarShell.Web.Services;
+using CarShell.Web.Validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
+using Npgsql;
 
 namespace CarShell.Web.Controllers;
 
-// Matches the API Surface (Phase 1) section of the design doc. The write
-// endpoints are stubbed with TODOs — they depend on a real Supabase project
-// (geocoding cache, image storage) that isn't wired up yet in this scaffold.
+// Matches the API Surface (Phase 1) section of the design doc.
 [ApiController]
 [Route("api/listings")]
-public class ListingsController(CarShellDbContext db) : ControllerBase
+public class ListingsController(
+    CarShellDbContext db,
+    IGeocodingService geocoding,
+    ISupabaseStorageService storage) : ControllerBase
 {
     private static readonly GeometryFactory GeometryFactory =
         NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     private const int PageSize = 24;
     private const double MilesToMeters = 1609.34;
+    private const int MaxImagesPerListing = 20;
+    private const long MaxImageSizeBytes = 10 * 1024 * 1024;
+
+    private static readonly Dictionary<string, string> AllowedImageContentTypes = new()
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp",
+    };
 
     [HttpGet]
     public async Task<IActionResult> Search(
@@ -54,9 +68,6 @@ public class ListingsController(CarShellDbContext db) : ControllerBase
         if (!string.IsNullOrWhiteSpace(make)) query = query.Where(l => l.Make.Name == make);
         if (!string.IsNullOrWhiteSpace(model)) query = query.Where(l => l.Model.Name == model);
 
-        // PostGIS radius filter — ST_DWithin under the hood via IsWithinDistance,
-        // using the GIST index on Listing.Location. See Distance + Price
-        // Filtering in the design doc.
         if (lat is not null && lng is not null && radiusMiles is not null)
         {
             var origin = GeometryFactory.CreatePoint(new Coordinate(lng.Value, lat.Value));
@@ -97,49 +108,253 @@ public class ListingsController(CarShellDbContext db) : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
-    public IActionResult Create([FromBody] CreateListingRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateListingRequest request, CancellationToken ct)
     {
-        // TODO: geocode request.Postcode via postcodes.io, caching the result
-        // in PostcodeGeocodes, and populate Lat/Lng/Location from it.
-        // TODO: validate the VIN format (the unique index on SellerId+Vin
-        // already rejects a duplicate).
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var vin = Vin.Normalize(request.Vin);
+        if (!Vin.IsValid(vin))
+        {
+            return BadRequest("VIN must be 17 characters, using the standard VIN character set (no I, O, or Q).");
+        }
+
+        var sellerId = User.GetUserId();
+
+        var duplicate = await db.Listings.AnyAsync(l => l.SellerId == sellerId && l.Vin == vin, ct);
+        if (duplicate)
+        {
+            return Conflict("A listing with this VIN already exists for this seller.");
+        }
+
+        var geocode = await geocoding.GeocodeAsync(request.Postcode, ct);
+        if (geocode is null)
+        {
+            return BadRequest("Could not resolve the given postcode.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var listing = new Listing
+        {
+            Id = Guid.NewGuid(),
+            SellerId = sellerId,
+            MakeId = request.MakeId,
+            ModelId = request.ModelId,
+            Trim = request.Trim,
+            Year = request.Year,
+            Mileage = request.Mileage,
+            EngineCapacityLitres = request.EngineCapacityLitres,
+            Price = request.Price,
+            FuelType = request.FuelType,
+            Transmission = request.Transmission,
+            BodyType = request.BodyType,
+            Description = request.Description,
+            Vin = vin,
+            Status = ListingStatus.Active,
+            Postcode = request.Postcode.Trim().ToUpperInvariant(),
+            Lat = geocode.Lat,
+            Lng = geocode.Lng,
+            Location = GeometryFactory.CreatePoint(new Coordinate(geocode.Lng, geocode.Lat)),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        db.Listings.Add(listing);
+        db.ListingStatusEvents.Add(new ListingStatusEvent
+        {
+            Id = Guid.NewGuid(),
+            ListingId = listing.Id,
+            FromStatus = ListingStatus.Draft,
+            ToStatus = ListingStatus.Active,
+            ChangedAt = now,
+            ChangedBy = sellerId,
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            return Conflict("A listing with this VIN already exists for this seller.");
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = listing.Id }, listing);
     }
 
     [HttpPatch("{id:guid}")]
     [Authorize(Policy = "AdminOnly")]
-    public IActionResult Update(Guid id)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateListingRequest request, CancellationToken ct)
     {
-        // TODO: apply the update, re-geocoding if the postcode changed, and
-        // write a ListingStatusEvent row if Status changed.
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var listing = await db.Listings.FirstOrDefaultAsync(l => l.Id == id, ct);
+        if (listing is null)
+        {
+            return NotFound();
+        }
+
+        if (request.Postcode is not null &&
+            !string.Equals(request.Postcode.Trim(), listing.Postcode, StringComparison.OrdinalIgnoreCase))
+        {
+            var geocode = await geocoding.GeocodeAsync(request.Postcode, ct);
+            if (geocode is null)
+            {
+                return BadRequest("Could not resolve the given postcode.");
+            }
+
+            listing.Postcode = request.Postcode.Trim().ToUpperInvariant();
+            listing.Lat = geocode.Lat;
+            listing.Lng = geocode.Lng;
+            listing.Location = GeometryFactory.CreatePoint(new Coordinate(geocode.Lng, geocode.Lat));
+        }
+
+        if (request.MakeId is not null) listing.MakeId = request.MakeId.Value;
+        if (request.ModelId is not null) listing.ModelId = request.ModelId.Value;
+        if (request.Trim is not null) listing.Trim = request.Trim;
+        if (request.Year is not null) listing.Year = request.Year.Value;
+        if (request.Mileage is not null) listing.Mileage = request.Mileage.Value;
+        if (request.EngineCapacityLitres is not null) listing.EngineCapacityLitres = request.EngineCapacityLitres.Value;
+        if (request.Price is not null) listing.Price = request.Price.Value;
+        if (request.FuelType is not null) listing.FuelType = request.FuelType.Value;
+        if (request.Transmission is not null) listing.Transmission = request.Transmission.Value;
+        if (request.BodyType is not null) listing.BodyType = request.BodyType.Value;
+        if (request.Description is not null) listing.Description = request.Description;
+
+        if (request.Status is not null && request.Status.Value != listing.Status)
+        {
+            if (request.Status.Value == ListingStatus.Sold && request.SalePrice is null)
+            {
+                return BadRequest("SalePrice is required when marking a listing as sold.");
+            }
+
+            db.ListingStatusEvents.Add(new ListingStatusEvent
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listing.Id,
+                FromStatus = listing.Status,
+                ToStatus = request.Status.Value,
+                SalePrice = request.Status.Value == ListingStatus.Sold ? request.SalePrice : null,
+                ChangedAt = DateTimeOffset.UtcNow,
+                ChangedBy = User.GetUserId(),
+            });
+            listing.Status = request.Status.Value;
+        }
+
+        listing.UpdatedAt = DateTimeOffset.UtcNow;
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            return Conflict("A listing with this VIN already exists for this seller.");
+        }
+
+        return Ok(listing);
     }
 
     [HttpDelete("{id:guid}")]
     [Authorize(Policy = "AdminOnly")]
-    public IActionResult Delete(Guid id)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var listing = await db.Listings.FirstOrDefaultAsync(l => l.Id == id, ct);
+        if (listing is null)
+        {
+            return NotFound();
+        }
+
+        if (listing.Status != ListingStatus.Removed)
+        {
+            db.ListingStatusEvents.Add(new ListingStatusEvent
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listing.Id,
+                FromStatus = listing.Status,
+                ToStatus = ListingStatus.Removed,
+                ChangedAt = DateTimeOffset.UtcNow,
+                ChangedBy = User.GetUserId(),
+            });
+            listing.Status = ListingStatus.Removed;
+            listing.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return NoContent();
     }
 
     [HttpPost("{id:guid}/images/upload-url")]
     [Authorize(Policy = "AdminOnly")]
-    public IActionResult GetImageUploadUrl(Guid id)
+    public async Task<IActionResult> GetImageUploadUrl(
+        Guid id, [FromBody] RequestImageUploadRequest request, CancellationToken ct)
     {
-        // TODO: issue a short-lived pre-signed upload URL against Supabase
-        // Storage. See Image Upload Pipeline in the design doc — the byte
-        // stream never passes through this API.
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var exists = await db.Listings.AnyAsync(l => l.Id == id, ct);
+        if (!exists)
+        {
+            return NotFound();
+        }
+
+        if (!AllowedImageContentTypes.TryGetValue(request.ContentType, out var extension))
+        {
+            return BadRequest("Content type must be one of: " + string.Join(", ", AllowedImageContentTypes.Keys));
+        }
+
+        var imageCount = await db.ListingImages.CountAsync(i => i.ListingId == id, ct);
+        if (imageCount >= MaxImagesPerListing)
+        {
+            return BadRequest($"A listing can have at most {MaxImagesPerListing} images.");
+        }
+
+        var storageKey = $"listings/{id}/{Guid.NewGuid():N}{extension}";
+        var signed = await storage.CreateSignedUploadUrlAsync(storageKey, ct);
+
+        return Ok(new { uploadUrl = signed.UploadUrl, storageKey = signed.StorageKey });
     }
 
     [HttpPost("{id:guid}/images/confirm")]
     [Authorize(Policy = "AdminOnly")]
-    public IActionResult ConfirmImageUpload(Guid id)
+    public async Task<IActionResult> ConfirmImageUpload(
+        Guid id, [FromBody] ConfirmImageUploadRequest request, CancellationToken ct)
     {
-        // TODO: verify the object exists in storage and its size/content-type,
-        // then record a ListingImage row.
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var exists = await db.Listings.AnyAsync(l => l.Id == id, ct);
+        if (!exists)
+        {
+            return NotFound();
+        }
+
+        if (!request.StorageKey.StartsWith($"listings/{id}/", StringComparison.Ordinal))
+        {
+            return BadRequest("Storage key does not belong to this listing.");
+        }
+
+        var info = await storage.GetObjectInfoAsync(request.StorageKey, ct);
+        if (info is null)
+        {
+            return BadRequest("No uploaded object was found at that storage key.");
+        }
+        if (!AllowedImageContentTypes.ContainsKey(info.ContentType))
+        {
+            return BadRequest("Unsupported content type.");
+        }
+        if (info.SizeBytes > MaxImageSizeBytes)
+        {
+            return BadRequest($"Image exceeds the maximum allowed size of {MaxImageSizeBytes / (1024 * 1024)}MB.");
+        }
+
+        var position = await db.ListingImages.CountAsync(i => i.ListingId == id, ct);
+        var image = new ListingImage
+        {
+            Id = Guid.NewGuid(),
+            ListingId = id,
+            StorageKey = request.StorageKey,
+            Position = position,
+            CreatedAt = DateTimeOffset.UtcNow,
+        };
+
+        db.ListingImages.Add(image);
+        await db.SaveChangesAsync(ct);
+
+        return CreatedAtAction(nameof(GetById), new { id }, new { image.Id, image.StorageKey, image.Position });
     }
+
+    private static bool IsUniqueViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException { SqlState: "23505" };
 }
 
 public record ListingSummary(
@@ -159,3 +374,23 @@ public record CreateListingRequest(
     string? Description,
     string Vin,
     string Postcode);
+
+public record UpdateListingRequest(
+    int? MakeId,
+    int? ModelId,
+    string? Trim,
+    int? Year,
+    int? Mileage,
+    decimal? EngineCapacityLitres,
+    decimal? Price,
+    FuelType? FuelType,
+    TransmissionType? Transmission,
+    BodyType? BodyType,
+    string? Description,
+    string? Postcode,
+    ListingStatus? Status,
+    decimal? SalePrice);
+
+public record RequestImageUploadRequest(string ContentType);
+
+public record ConfirmImageUploadRequest(string StorageKey);

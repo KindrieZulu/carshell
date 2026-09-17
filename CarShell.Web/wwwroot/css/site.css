@@ -11,3 +11,6 @@ main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .spec-list dt { color: #666; }
 .listing-images img { max-width: 200px; margin-right: 0.5rem; border-radius: 4px; }
 .seller-contact { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e5e5; }
+
+.site-footer { max-width: 960px; margin: 2rem auto 0; padding: 1rem 1.5rem; border-top: 1px solid #e5e5e5; font-size: 0.85rem; }
+.site-footer a { color: #666; }

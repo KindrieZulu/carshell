@@ -33,6 +33,7 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
     private Guid _sellerId;
     private int _makeId;
     private int _modelId;
+    private int _suburbId;
 
     public HttpSerializationTests(CarShellWebApplicationFactory factory)
     {
@@ -45,8 +46,10 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
 
         var make = new Make { Name = $"HttpTestMake-{Guid.NewGuid():N}" };
         var seller = new User { Id = Guid.NewGuid(), Email = $"{Guid.NewGuid():N}@test.local", Role = UserRole.Admin };
+        var suburb = new Suburb { City = "Harare", Name = $"HttpTestSuburb-{Guid.NewGuid():N}", Lat = -17.8292, Lng = 31.0522 };
         _db.Makes.Add(make);
         _db.Users.Add(seller);
+        _db.Suburbs.Add(suburb);
         await _db.SaveChangesAsync();
 
         var model = new VehicleModel { MakeId = make.Id, Name = "HttpTestModel" };
@@ -69,10 +72,10 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
             BodyType = BodyType.Hatchback,
             Vin = "1HGCM82633A004352",
             Status = ListingStatus.Active,
-            Postcode = "SW1A 1AA",
-            Lat = 51.5074,
-            Lng = -0.1278,
-            Location = geometryFactory.CreatePoint(new Coordinate(-0.1278, 51.5074)),
+            SuburbId = suburb.Id,
+            Lat = -17.8292,
+            Lng = 31.0522,
+            Location = geometryFactory.CreatePoint(new Coordinate(31.0522, -17.8292)),
         };
         _db.Listings.Add(listing);
         await _db.SaveChangesAsync();
@@ -81,6 +84,7 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
         _sellerId = seller.Id;
         _makeId = make.Id;
         _modelId = model.Id;
+        _suburbId = suburb.Id;
     }
 
     public async Task DisposeAsync()
@@ -89,6 +93,7 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
         await _db.VehicleModels.Where(m => m.Id == _modelId).ExecuteDeleteAsync();
         await _db.Makes.Where(m => m.Id == _makeId).ExecuteDeleteAsync();
         await _db.Users.Where(u => u.Id == _sellerId).ExecuteDeleteAsync();
+        await _db.Suburbs.Where(s => s.Id == _suburbId).ExecuteDeleteAsync();
         await _db.DisposeAsync();
     }
 
@@ -103,7 +108,7 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
         var detail = await response.Content.ReadFromJsonAsync<ListingDetail>(JsonOptions);
         Assert.NotNull(detail);
         Assert.Equal(_listingId, detail!.Id);
-        Assert.Equal(51.5074, detail.Lat);
+        Assert.Equal(-17.8292, detail.Lat);
         Assert.Equal(FuelType.Petrol, detail.FuelType);
     }
 

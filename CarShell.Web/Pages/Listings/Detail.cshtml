@@ -6,15 +6,15 @@
 }
 
 <h1>@listing.Year @listing.Make.Name @listing.Model.Name</h1>
-<p class="price">@listing.Price.ToString("C0")</p>
+<p class="price">$@listing.Price.ToString("N0")</p>
 
 <dl class="spec-list">
-    <dt>Mileage</dt><dd>@listing.Mileage.ToString("N0") miles</dd>
+    <dt>Mileage</dt><dd>@listing.Mileage.ToString("N0") km</dd>
     <dt>Engine</dt><dd>@listing.EngineCapacityLitres.ToString("0.0")L</dd>
     <dt>Fuel type</dt><dd>@listing.FuelType</dd>
     <dt>Transmission</dt><dd>@listing.Transmission</dd>
     <dt>Body type</dt><dd>@listing.BodyType</dd>
-    <dt>Location</dt><dd>@listing.Postcode</dd>
+    <dt>Location</dt><dd>@listing.Suburb.Name, @listing.Suburb.City</dd>
 </dl>
 
 @if (!string.IsNullOrWhiteSpace(listing.Description))

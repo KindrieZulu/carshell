@@ -12,7 +12,7 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
     public DbSet<SellerSubscription> SellerSubscriptions => Set<SellerSubscription>();
     public DbSet<Make> Makes => Set<Make>();
     public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
-    public DbSet<PostcodeGeocode> PostcodeGeocodes => Set<PostcodeGeocode>();
+    public DbSet<Suburb> Suburbs => Set<Suburb>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,9 +35,9 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
             e.HasIndex(m => new { m.MakeId, m.Name }).IsUnique();
         });
 
-        modelBuilder.Entity<PostcodeGeocode>(e =>
+        modelBuilder.Entity<Suburb>(e =>
         {
-            e.HasKey(p => p.Postcode);
+            e.HasIndex(s => new { s.City, s.Name }).IsUnique();
         });
 
         modelBuilder.Entity<Listing>(e =>
@@ -49,12 +49,12 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
             e.Property(l => l.EngineCapacityLitres).HasColumnType("decimal(3,1)");
             e.Property(l => l.Price).HasColumnType("decimal(10,2)");
             e.Property(l => l.Vin).HasMaxLength(17).IsRequired();
-            e.Property(l => l.Postcode).HasMaxLength(10).IsRequired();
             e.Property(l => l.Location).HasColumnType("geography (point)");
 
             e.HasOne(l => l.Seller).WithMany(u => u.Listings).HasForeignKey(l => l.SellerId);
             e.HasOne(l => l.Make).WithMany().HasForeignKey(l => l.MakeId);
             e.HasOne(l => l.Model).WithMany().HasForeignKey(l => l.ModelId);
+            e.HasOne(l => l.Suburb).WithMany().HasForeignKey(l => l.SuburbId);
 
             // Composite indexes matching the filters the Distance + Price
             // Filtering section of the design doc actually queries by.

@@ -6,21 +6,25 @@
 
 <h1>Find a car</h1>
 
-<form method="get" class="search-form">
+<form method="get" class="search-form" id="search-form">
     <label>
-        Min price
+        Min price ($)
         <input type="number" name="MinPrice" value="@Model.MinPrice" />
     </label>
     <label>
-        Max price
+        Max price ($)
         <input type="number" name="MaxPrice" value="@Model.MaxPrice" />
     </label>
     <label>
-        Radius (miles)
-        <input type="number" name="RadiusMiles" value="@Model.RadiusMiles" />
+        Radius (km)
+        <input type="number" name="RadiusKm" id="radius-km" value="@Model.RadiusKm" />
     </label>
+    <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
+    <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
     <button type="submit">Search</button>
 </form>
+
+<p id="location-status" class="location-status"></p>
 
 @if (Model.Results.Count == 0)
 {
@@ -33,10 +37,47 @@ else
         {
             <li>
                 <a href="/listings/@listing.Id">
-                    @listing.Year @listing.Make @listing.Model &mdash; @listing.Price.ToString("C0")
+                    @listing.Year @listing.Make @listing.Model &mdash; $@listing.Price.ToString("N0")
                 </a>
-                <span>@listing.Mileage.ToString("N0") miles &middot; @listing.Postcode</span>
+                <span>@listing.Mileage.ToString("N0") km &middot; @listing.Suburb, @listing.City</span>
             </li>
         }
     </ul>
+}
+
+@section Scripts {
+    <script>
+        // "Buyers see cars near them by default": on first visit (no
+        // location already in the URL), ask the browser for the user's
+        // position and re-run the search centred on it. If permission is
+        // denied or unavailable, the page just falls back to the unfiltered
+        // newest-first list already rendered above.
+        (function () {
+            var params = new URLSearchParams(window.location.search);
+            if (params.has('Lat') && params.get('Lat')) {
+                return;
+            }
+            if (!('geolocation' in navigator)) {
+                return;
+            }
+
+            var status = document.getElementById('location-status');
+            status.textContent = 'Finding cars near you…';
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    params.set('Lat', position.coords.latitude);
+                    params.set('Lng', position.coords.longitude);
+                    if (!params.get('RadiusKm')) {
+                        params.set('RadiusKm', '50');
+                    }
+                    window.location.search = params.toString();
+                },
+                function () {
+                    status.textContent = '';
+                },
+                { timeout: 8000 }
+            );
+        })();
+    </script>
 }

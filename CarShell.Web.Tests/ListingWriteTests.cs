@@ -2,7 +2,6 @@ using System.Security.Claims;
 using CarShell.Web.Controllers;
 using CarShell.Web.Data;
 using CarShell.Web.Data.Entities;
-using CarShell.Web.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +21,9 @@ public class ListingWriteTests : IAsyncLifetime
     private IDbContextTransaction _transaction = default!;
     private int _makeId;
     private int _modelId;
+    private int _suburbId;
+    private double _suburbLat;
+    private double _suburbLng;
     private Guid _adminId;
 
     public async Task InitializeAsync()
@@ -31,6 +33,8 @@ public class ListingWriteTests : IAsyncLifetime
 
         var make = new Make { Name = $"TestMake-{Guid.NewGuid():N}" };
         _db.Makes.Add(make);
+        var suburb = new Suburb { City = "Harare", Name = $"TestSuburb-{Guid.NewGuid():N}", Lat = -17.8292, Lng = 31.0522 };
+        _db.Suburbs.Add(suburb);
         var admin = new User { Id = Guid.NewGuid(), Email = $"{Guid.NewGuid():N}@test.local", Role = UserRole.Admin };
         _db.Users.Add(admin);
         await _db.SaveChangesAsync();
@@ -41,6 +45,9 @@ public class ListingWriteTests : IAsyncLifetime
 
         _makeId = make.Id;
         _modelId = model.Id;
+        _suburbId = suburb.Id;
+        _suburbLat = suburb.Lat;
+        _suburbLng = suburb.Lng;
         _adminId = admin.Id;
     }
 
@@ -50,10 +57,9 @@ public class ListingWriteTests : IAsyncLifetime
         await _db.DisposeAsync();
     }
 
-    private ListingsController BuildController(IGeocodingService? geocoding = null)
+    private ListingsController BuildController()
     {
-        var controller = new ListingsController(
-            _db, geocoding ?? new FakeGeocodingService(), new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService());
 
         var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, _adminId.ToString()) });
         controller.ControllerContext = new ControllerContext
@@ -63,7 +69,7 @@ public class ListingWriteTests : IAsyncLifetime
         return controller;
     }
 
-    private CreateListingRequest ValidCreateRequest(string vin = "1HGCM82633A004352") => new(
+    private CreateListingRequest ValidCreateRequest(string vin = "1HGCM82633A004352", int? suburbId = null) => new(
         MakeId: _makeId,
         ModelId: _modelId,
         Trim: "SE",
@@ -76,12 +82,12 @@ public class ListingWriteTests : IAsyncLifetime
         BodyType: BodyType.Hatchback,
         Description: "A test listing.",
         Vin: vin,
-        Postcode: "SW1A 1AA");
+        SuburbId: suburbId ?? _suburbId);
 
     [Fact]
-    public async Task Create_creates_active_listing_with_geocoded_location()
+    public async Task Create_creates_active_listing_with_the_suburbs_coordinates()
     {
-        var controller = BuildController(new FakeGeocodingService(lat: 52.0, lng: -1.5));
+        var controller = BuildController();
 
         var result = await controller.Create(ValidCreateRequest(), default);
 
@@ -89,13 +95,23 @@ public class ListingWriteTests : IAsyncLifetime
         var listing = Assert.IsType<ListingDetail>(created.Value);
 
         Assert.Equal(ListingStatus.Active, listing.Status);
-        Assert.Equal(52.0, listing.Lat);
-        Assert.Equal(-1.5, listing.Lng);
+        Assert.Equal(_suburbLat, listing.Lat);
+        Assert.Equal(_suburbLng, listing.Lng);
 
         var events = await _db.ListingStatusEvents.Where(e => e.ListingId == listing.Id).ToListAsync();
         var createdEvent = Assert.Single(events);
         Assert.Equal(ListingStatus.Draft, createdEvent.FromStatus);
         Assert.Equal(ListingStatus.Active, createdEvent.ToStatus);
+    }
+
+    [Fact]
+    public async Task Create_rejects_unknown_suburb()
+    {
+        var controller = BuildController();
+
+        var result = await controller.Create(ValidCreateRequest(suburbId: 999_999), default);
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
@@ -177,22 +193,5 @@ public class ListingWriteTests : IAsyncLifetime
             .Where(e => e.ListingId == listing.Id && e.ToStatus == ListingStatus.Removed)
             .SingleAsync();
         Assert.Equal(ListingStatus.Active, removedEvent.FromStatus);
-    }
-
-    [Fact]
-    public async Task Create_resolves_a_real_postcode_via_postcodes_io()
-    {
-        var httpClient = new HttpClient { BaseAddress = new Uri("https://api.postcodes.io/") };
-        var realGeocoding = new PostcodesIoGeocodingService(httpClient, _db);
-        var controller = BuildController(realGeocoding);
-
-        var result = await controller.Create(ValidCreateRequest(), default);
-
-        var created = Assert.IsType<CreatedAtActionResult>(result);
-        var listing = Assert.IsType<ListingDetail>(created.Value);
-
-        // SW1A 1AA is Buckingham Palace — central London.
-        Assert.InRange(listing.Lat, 51.4, 51.6);
-        Assert.InRange(listing.Lng, -0.3, 0.0);
     }
 }

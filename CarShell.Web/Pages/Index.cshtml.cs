@@ -28,7 +28,7 @@ public class IndexModel(CarShellDbContext db) : PageModel
     public double? Lng { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public double? RadiusMiles { get; set; }
+    public double? RadiusKm { get; set; }
 
     public List<ListingRow> Results { get; private set; } = [];
 
@@ -39,20 +39,20 @@ public class IndexModel(CarShellDbContext db) : PageModel
         if (MinPrice is not null) query = query.Where(l => l.Price >= MinPrice);
         if (MaxPrice is not null) query = query.Where(l => l.Price <= MaxPrice);
 
-        if (Lat is not null && Lng is not null && RadiusMiles is not null)
+        if (Lat is not null && Lng is not null && RadiusKm is not null)
         {
             var origin = GeometryFactory.CreatePoint(new Coordinate(Lng.Value, Lat.Value));
-            var radiusMeters = RadiusMiles.Value * 1609.34;
+            var radiusMeters = RadiusKm.Value * 1000;
             query = query.Where(l => l.Location.IsWithinDistance(origin, radiusMeters));
         }
 
         Results = await query
             .OrderByDescending(l => l.CreatedAt)
             .Take(24)
-            .Select(l => new ListingRow(l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Postcode))
+            .Select(l => new ListingRow(l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City))
             .ToListAsync(ct);
     }
 
     public record ListingRow(
-        Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Postcode);
+        Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City);
 }

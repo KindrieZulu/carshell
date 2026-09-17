@@ -5,6 +5,10 @@ one ASP.NET Core app serving both the API and server-rendered public pages, back
 PostgreSQL + PostGIS on Supabase. No separate frontend, no Redis, no background job queue yet —
 see the doc's "Path to Real-World Ready" section for when each of those gets added.
 
+This is a Zimbabwe-based marketplace: prices are in USD, distances are in kilometres, and
+location is a city/suburb picked from a reference table rather than a postcode — Zimbabwe has no
+national postcode system the way the UK does. See "Location model" below.
+
 ## Prerequisites
 
 - .NET 8 SDK
@@ -27,17 +31,25 @@ dotnet run
 configured, but replace them with `dotnet user-secrets` for anything real — that file is
 gitignored on purpose.
 
+## Location model
+
+Listings are placed by picking a `Suburb` (city + area name, e.g. "Borrowdale, Harare") from a
+seeded reference table, each with a fixed lat/lng — see Bootstrapping reference data below. This
+sidesteps needing any external geocoding API: the coordinates are known upfront, same as
+Makes/VehicleModels. The search page also asks the buyer's browser for their location on first
+visit (if permission is granted) so it can show nearby listings by default, using the same
+PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` section.
+
 ## What's actually implemented vs. stubbed
 
-- Search, filtering (price, distance via PostGIS, make/model/year/engine capacity/fuel/
+- Search, filtering (price, distance via PostGIS in km, make/model/year/engine capacity/fuel/
   transmission/body type), and listing detail: implemented, both as JSON (`/api/listings`) and
   as the server-rendered pages (`/`, `/listings/{id}`).
 - Creating, editing, and deleting a listing: implemented
   (`POST`/`PATCH`/`DELETE /api/listings/{id}`) — VIN format validation, per-seller
-  duplicate-VIN rejection, postcode
-  geocoding via postcodes.io (cached in `PostcodeGeocodes`), and an append-only
-  `ListingStatusEvents` row on every status change. Delete is a soft delete (`status = removed`)
-  so sold/dispatched reporting keeps working against archived listings.
+  duplicate-VIN rejection, suburb-based location, and an append-only `ListingStatusEvents` row
+  on every status change. Delete is a soft delete (`status = removed`) so sold/dispatched
+  reporting keeps working against archived listings.
 - The image upload pipeline: implemented (`POST /api/listings/{id}/images/upload-url` and
   `/confirm`) against Supabase Storage's REST API — pre-signed direct upload, then a
   server-side re-check of the uploaded object's actual size and content type on confirm. This
@@ -73,19 +85,23 @@ table instead: the JWT proves who they are, the database decides what they're al
    ON CONFLICT ("Id") DO UPDATE SET "Role" = 'Admin';
    ```
 4. To get a bearer token for testing the admin endpoints, call Supabase Auth's password grant
-   directly (needs the project's anon key, from Settings → API):
+   directly (needs the project's anon/publishable key, from Settings → API):
    ```bash
-   curl -s "https://your-project.supabase.co/auth/v1/token?grant_type=password"      -H "apikey: <anon-key>" -H "Content-Type: application/json"      -d '{"email": "<email-from-step-1>", "password": "<the password you set>"}'
+   curl -s "https://your-project.supabase.co/auth/v1/token?grant_type=password" \
+     -H "apikey: <anon-key>" -H "Content-Type: application/json" \
+     -d '{"email": "<email-from-step-1>", "password": "<the password you set>"}'
    ```
    Use the `access_token` from the response as `Authorization: Bearer <token>` against
    `/api/listings`.
 
 ## Tests
 
-`CarShell.Web.Tests` covers VIN validation, the geocoding cache, and the search/write paths as
-integration tests against a real Postgres+PostGIS database (an in-memory provider can't
-reproduce the PostGIS radius filter) — the design doc calls this out explicitly as a Phase 0
-must-have. One test hits the real postcodes.io API.
+`CarShell.Web.Tests` covers VIN validation, and the search/write paths as integration tests
+against a real Postgres+PostGIS database (an in-memory provider can't reproduce the PostGIS
+radius filter) — the design doc calls this out explicitly as a Phase 0 must-have.
+`HttpSerializationTests` goes through the real HTTP/JSON pipeline via `WebApplicationFactory`
+rather than calling controllers directly, specifically to catch response-serialization and
+routing bugs the other tests can't see.
 
 ```bash
 createdb -U postgres -h localhost -p 5432 carshell_test
@@ -96,13 +112,19 @@ dotnet test
 Set `CARSHELL_TEST_DB` to point tests at a different connection string; it defaults to
 `Host=localhost;Port=5432;Database=carshell_test;Username=postgres;Password=123passed`.
 `.github/workflows/ci.yml` runs the same suite against a `postgis/postgis` service container on
-every push and PR to `main`.
+every push and PR to `main`. xUnit's parallel test-collection execution is disabled
+(`xunit.runner.json`) since the HTTP-level tests commit real rows to the shared test database
+rather than using the other tests' rollback-transaction isolation.
 
 ## Bootstrapping reference data
 
-`makes` and `models` need seeding before search is useful. Run the seed script (26 common
-UK-market makes, ~140 models) against your database — it's idempotent, safe to re-run:
+Both scripts are idempotent, safe to re-run:
 
 ```bash
 psql -U postgres -h localhost -p 5432 -d carshell -f CarShell.Web/Data/Seed/seed-makes-models.sql
+psql -U postgres -h localhost -p 5432 -d carshell -f CarShell.Web/Data/Seed/seed-suburbs.sql
 ```
+
+- `seed-makes-models.sql`: 26 common makes, ~140 models.
+- `seed-suburbs.sql`: Zimbabwe's major cities and a selection of Harare/Bulawayo suburbs, each
+  with an approximate centre-point lat/lng — needed before a listing can be created.

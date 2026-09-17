@@ -50,13 +50,6 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
 
-// Distance + Price Filtering: postcodes.io resolves a postcode to lat/lng
-// once per postcode, cached in PostcodeGeocodes.
-builder.Services.AddHttpClient<IGeocodingService, PostcodesIoGeocodingService>(client =>
-{
-    client.BaseAddress = new Uri("https://api.postcodes.io/");
-});
-
 // Image Upload Pipeline: talks to Supabase Storage's REST API using the
 // service-role key, never exposed to the client. Needs Supabase:Url and
 // Supabase:ServiceRoleKey configured to actually work end-to-end.
@@ -77,15 +70,16 @@ builder.Services.AddControllers()
 
 var app = builder.Build();
 
-// A UK-facing marketplace: without this, decimal/currency formatting (e.g.
-// Listing.Price.ToString("C0") in the Razor pages) falls back to whatever
-// culture the host OS happens to have, which is $ on this dev machine.
-var ukCulture = new CultureInfo("en-GB");
+// Prices are USD, formatted explicitly with a literal "$" in the Razor
+// pages rather than ToString("C0") — a culture's currency symbol depends on
+// its region's own currency (en-ZW would format as ZWL, not USD), which
+// isn't what we want here. This just locks down number grouping (thousands
+// separators) so it doesn't depend on whatever locale the host OS has.
 app.UseRequestLocalization(new RequestLocalizationOptions
 {
-    DefaultRequestCulture = new RequestCulture(ukCulture),
-    SupportedCultures = [ukCulture],
-    SupportedUICultures = [ukCulture],
+    DefaultRequestCulture = new RequestCulture(CultureInfo.InvariantCulture),
+    SupportedCultures = [CultureInfo.InvariantCulture],
+    SupportedUICultures = [CultureInfo.InvariantCulture],
 });
 
 if (!app.Environment.IsDevelopment())

@@ -17,6 +17,7 @@ public class DetailModel(CarShellDbContext db) : PageModel
             .Include(l => l.Seller)
             .Include(l => l.Make)
             .Include(l => l.Model)
+            .Include(l => l.Suburb)
             .FirstOrDefaultAsync(l => l.Id == id && l.Status == ListingStatus.Active, ct);
 
         return Listing is null ? NotFound() : Page();

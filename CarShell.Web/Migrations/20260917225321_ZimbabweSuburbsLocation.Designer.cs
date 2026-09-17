@@ -3,6 +3,7 @@ using System;
 using CarShell.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CarShell.Web.Migrations
 {
     [DbContext(typeof(CarShellDbContext))]
-    partial class CarShellDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260917225321_ZimbabweSuburbsLocation")]
+    partial class ZimbabweSuburbsLocation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

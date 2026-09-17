@@ -22,6 +22,7 @@ public class SearchFilteringTests : IAsyncLifetime
     private IDbContextTransaction _transaction = default!;
     private int _makeId;
     private int _modelId;
+    private int _suburbId;
 
     public async Task InitializeAsync()
     {
@@ -30,6 +31,8 @@ public class SearchFilteringTests : IAsyncLifetime
 
         var make = new Make { Name = $"TestMake-{Guid.NewGuid():N}" };
         _db.Makes.Add(make);
+        var suburb = new Suburb { City = "Harare", Name = $"TestSuburb-{Guid.NewGuid():N}", Lat = -17.8292, Lng = 31.0522 };
+        _db.Suburbs.Add(suburb);
         await _db.SaveChangesAsync();
 
         var model = new VehicleModel { MakeId = make.Id, Name = "TestModel" };
@@ -38,6 +41,7 @@ public class SearchFilteringTests : IAsyncLifetime
 
         _makeId = make.Id;
         _modelId = model.Id;
+        _suburbId = suburb.Id;
     }
 
     public async Task DisposeAsync()
@@ -51,14 +55,14 @@ public class SearchFilteringTests : IAsyncLifetime
     {
         var sellerId = await SeedAdminUser();
         _db.Listings.AddRange(
-            BuildListing(5000m, 51.5074, -0.1278, sellerId),
-            BuildListing(10000m, 51.5074, -0.1278, sellerId),
-            BuildListing(20000m, 51.5074, -0.1278, sellerId));
+            BuildListing(5000m, -17.8292, 31.0522, sellerId),
+            BuildListing(10000m, -17.8292, 31.0522, sellerId),
+            BuildListing(20000m, -17.8292, 31.0522, sellerId));
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingGeocodingService(), new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService());
         var result = await controller.Search(
-            lat: null, lng: null, radiusMiles: null,
+            lat: null, lng: null, radiusKm: null,
             minPrice: 8000m, maxPrice: 15000m,
             make: null, model: null, minYear: null, maxYear: null,
             minEngineCapacity: null, maxEngineCapacity: null,
@@ -76,14 +80,14 @@ public class SearchFilteringTests : IAsyncLifetime
     public async Task Search_filters_by_radius()
     {
         var sellerId = await SeedAdminUser();
-        var near = BuildListing(10000m, 51.5074, -0.1278, sellerId); // London
-        var far = BuildListing(10000m, 55.9533, -3.1883, sellerId); // Edinburgh, ~330mi away
+        var near = BuildListing(10000m, -17.8292, 31.0522, sellerId); // Harare
+        var far = BuildListing(10000m, -20.1500, 28.5833, sellerId); // Bulawayo, ~440km away
         _db.Listings.AddRange(near, far);
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingGeocodingService(), new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService());
         var result = await controller.Search(
-            lat: 51.5074, lng: -0.1278, radiusMiles: 10,
+            lat: -17.8292, lng: 31.0522, radiusKm: 20,
             minPrice: null, maxPrice: null,
             make: null, model: null, minYear: null, maxYear: null,
             minEngineCapacity: null, maxEngineCapacity: null,
@@ -101,14 +105,14 @@ public class SearchFilteringTests : IAsyncLifetime
     public async Task Search_excludes_non_active_listings()
     {
         var sellerId = await SeedAdminUser();
-        var draft = BuildListing(10000m, 51.5074, -0.1278, sellerId);
+        var draft = BuildListing(10000m, -17.8292, 31.0522, sellerId);
         draft.Status = ListingStatus.Draft;
         _db.Listings.Add(draft);
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingGeocodingService(), new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService());
         var result = await controller.Search(
-            lat: null, lng: null, radiusMiles: null,
+            lat: null, lng: null, radiusKm: null,
             minPrice: null, maxPrice: null,
             make: null, model: null, minYear: null, maxYear: null,
             minEngineCapacity: null, maxEngineCapacity: null,
@@ -136,7 +140,7 @@ public class SearchFilteringTests : IAsyncLifetime
         BodyType = BodyType.Hatchback,
         Vin = Guid.NewGuid().ToString("N")[..17].ToUpperInvariant(),
         Status = ListingStatus.Active,
-        Postcode = "SW1A 1AA",
+        SuburbId = _suburbId,
         Lat = lat,
         Lng = lng,
         Location = GeometryFactory.CreatePoint(new Coordinate(lng, lat)),

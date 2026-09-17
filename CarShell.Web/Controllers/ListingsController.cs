@@ -14,16 +14,13 @@ namespace CarShell.Web.Controllers;
 // Matches the API Surface (Phase 1) section of the design doc.
 [ApiController]
 [Route("api/listings")]
-public class ListingsController(
-    CarShellDbContext db,
-    IGeocodingService geocoding,
-    ISupabaseStorageService storage) : ControllerBase
+public class ListingsController(CarShellDbContext db, ISupabaseStorageService storage) : ControllerBase
 {
     private static readonly GeometryFactory GeometryFactory =
         NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
 
     private const int PageSize = 24;
-    private const double MilesToMeters = 1609.34;
+    private const double KmToMeters = 1000;
     private const int MaxImagesPerListing = 20;
     private const long MaxImageSizeBytes = 10 * 1024 * 1024;
 
@@ -38,7 +35,7 @@ public class ListingsController(
     public async Task<IActionResult> Search(
         [FromQuery] double? lat,
         [FromQuery] double? lng,
-        [FromQuery] double? radiusMiles,
+        [FromQuery] double? radiusKm,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] string? make,
@@ -68,10 +65,13 @@ public class ListingsController(
         if (!string.IsNullOrWhiteSpace(make)) query = query.Where(l => l.Make.Name == make);
         if (!string.IsNullOrWhiteSpace(model)) query = query.Where(l => l.Model.Name == model);
 
-        if (lat is not null && lng is not null && radiusMiles is not null)
+        // PostGIS radius filter — ST_DWithin under the hood via IsWithinDistance,
+        // using the GIST index on Listing.Location. See Distance + Price
+        // Filtering in the design doc.
+        if (lat is not null && lng is not null && radiusKm is not null)
         {
             var origin = GeometryFactory.CreatePoint(new Coordinate(lng.Value, lat.Value));
-            var radiusMeters = radiusMiles.Value * MilesToMeters;
+            var radiusMeters = radiusKm.Value * KmToMeters;
             query = query.Where(l => l.Location.IsWithinDistance(origin, radiusMeters));
         }
 
@@ -87,7 +87,7 @@ public class ListingsController(
             .Skip((Math.Max(page, 1) - 1) * PageSize)
             .Take(PageSize)
             .Select(l => new ListingSummary(
-                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Postcode))
+                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City))
             .ToListAsync(ct);
 
         return Ok(results);
@@ -101,6 +101,7 @@ public class ListingsController(
             .Include(l => l.Seller)
             .Include(l => l.Make)
             .Include(l => l.Model)
+            .Include(l => l.Suburb)
             .FirstOrDefaultAsync(l => l.Id == id, ct);
 
         return listing is null ? NotFound() : Ok(ToDetail(listing));
@@ -124,10 +125,10 @@ public class ListingsController(
             return Conflict("A listing with this VIN already exists for this seller.");
         }
 
-        var geocode = await geocoding.GeocodeAsync(request.Postcode, ct);
-        if (geocode is null)
+        var suburb = await db.Suburbs.FindAsync([request.SuburbId], ct);
+        if (suburb is null)
         {
-            return BadRequest("Could not resolve the given postcode.");
+            return BadRequest("Unknown suburb.");
         }
 
         var now = DateTimeOffset.UtcNow;
@@ -148,10 +149,10 @@ public class ListingsController(
             Description = request.Description,
             Vin = vin,
             Status = ListingStatus.Active,
-            Postcode = request.Postcode.Trim().ToUpperInvariant(),
-            Lat = geocode.Lat,
-            Lng = geocode.Lng,
-            Location = GeometryFactory.CreatePoint(new Coordinate(geocode.Lng, geocode.Lat)),
+            SuburbId = suburb.Id,
+            Lat = suburb.Lat,
+            Lng = suburb.Lng,
+            Location = GeometryFactory.CreatePoint(new Coordinate(suburb.Lng, suburb.Lat)),
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -176,6 +177,7 @@ public class ListingsController(
             return Conflict("A listing with this VIN already exists for this seller.");
         }
 
+        listing.Suburb = suburb;
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToDetail(listing));
     }
 
@@ -183,25 +185,25 @@ public class ListingsController(
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateListingRequest request, CancellationToken ct)
     {
-        var listing = await db.Listings.FirstOrDefaultAsync(l => l.Id == id, ct);
+        var listing = await db.Listings.Include(l => l.Suburb).FirstOrDefaultAsync(l => l.Id == id, ct);
         if (listing is null)
         {
             return NotFound();
         }
 
-        if (request.Postcode is not null &&
-            !string.Equals(request.Postcode.Trim(), listing.Postcode, StringComparison.OrdinalIgnoreCase))
+        if (request.SuburbId is not null && request.SuburbId.Value != listing.SuburbId)
         {
-            var geocode = await geocoding.GeocodeAsync(request.Postcode, ct);
-            if (geocode is null)
+            var suburb = await db.Suburbs.FindAsync([request.SuburbId.Value], ct);
+            if (suburb is null)
             {
-                return BadRequest("Could not resolve the given postcode.");
+                return BadRequest("Unknown suburb.");
             }
 
-            listing.Postcode = request.Postcode.Trim().ToUpperInvariant();
-            listing.Lat = geocode.Lat;
-            listing.Lng = geocode.Lng;
-            listing.Location = GeometryFactory.CreatePoint(new Coordinate(geocode.Lng, geocode.Lat));
+            listing.SuburbId = suburb.Id;
+            listing.Suburb = suburb;
+            listing.Lat = suburb.Lat;
+            listing.Lng = suburb.Lng;
+            listing.Location = GeometryFactory.CreatePoint(new Coordinate(suburb.Lng, suburb.Lat));
         }
 
         if (request.MakeId is not null) listing.MakeId = request.MakeId.Value;
@@ -260,6 +262,9 @@ public class ListingsController(
             return NotFound();
         }
 
+        // Soft delete: the row and its status history stay, since
+        // listing_status_events is the append-only source the sold/dispatched
+        // reporting reads from — see Data Model in the design doc.
         if (listing.Status != ListingStatus.Removed)
         {
             db.ListingStatusEvents.Add(new ListingStatusEvent
@@ -377,7 +382,9 @@ public class ListingsController(
         listing.Description,
         listing.Vin,
         listing.Status,
-        listing.Postcode,
+        listing.SuburbId,
+        listing.Suburb?.Name,
+        listing.Suburb?.City,
         listing.Lat,
         listing.Lng,
         listing.CreatedAt,
@@ -386,7 +393,7 @@ public class ListingsController(
 }
 
 public record ListingSummary(
-    Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Postcode);
+    Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City);
 
 public record CreateListingRequest(
     int MakeId,
@@ -401,7 +408,7 @@ public record CreateListingRequest(
     BodyType BodyType,
     string? Description,
     string Vin,
-    string Postcode);
+    int SuburbId);
 
 public record UpdateListingRequest(
     int? MakeId,
@@ -415,7 +422,7 @@ public record UpdateListingRequest(
     TransmissionType? Transmission,
     BodyType? BodyType,
     string? Description,
-    string? Postcode,
+    int? SuburbId,
     ListingStatus? Status,
     decimal? SalePrice);
 
@@ -443,7 +450,9 @@ public record ListingDetail(
     string? Description,
     string Vin,
     ListingStatus Status,
-    string Postcode,
+    int SuburbId,
+    string? SuburbName,
+    string? City,
     double Lat,
     double Lng,
     DateTimeOffset CreatedAt,

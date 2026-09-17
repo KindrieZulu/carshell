@@ -35,12 +35,16 @@ public class Listing
 
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
 
-    public string Postcode { get; set; } = default!;
+    public int SuburbId { get; set; }
+    public Suburb Suburb { get; set; } = default!;
+
+    // Denormalized from Suburb at create/update time, so the PostGIS query
+    // doesn't need a join, and so a listing keeps its recorded location even
+    // if a Suburb's coordinates are ever corrected later.
     public double Lat { get; set; }
     public double Lng { get; set; }
 
     // Geography point for PostGIS radius queries (ST_DWithin / IsWithinDistance).
-    // Kept in sync with Lat/Lng whenever a listing is geocoded.
     public Point Location { get; set; } = default!;
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

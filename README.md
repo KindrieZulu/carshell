@@ -41,5 +41,9 @@ gitignored on purpose.
 
 ## Bootstrapping reference data
 
-`makes` and `models` need seeding before search is useful. No seed script yet — insert rows
-directly for now.
+`makes` and `models` need seeding before search is useful. Run the seed script (26 common
+UK-market makes, ~140 models) against your database — it's idempotent, safe to re-run:
+
+```bash
+psql -U postgres -h localhost -p 5432 -d carshell -f CarShell.Web/Data/Seed/seed-makes-models.sql
+```

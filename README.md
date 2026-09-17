@@ -59,11 +59,12 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   uses (see `wwwroot/js/admin-auth.js`); no separate frontend framework, per Phase 0. The
   Supabase anon/publishable key is injected into the login page from `Supabase:AnonKey` config —
   safe to expose client-side, it's Supabase's public, rate-limited key, not a secret.
-- The image upload pipeline: implemented (`POST /api/listings/{id}/images/upload-url` and
-  `/confirm`) against Supabase Storage's REST API — pre-signed direct upload, then a
-  server-side re-check of the uploaded object's actual size and content type on confirm. This
-  needs a real Supabase project's `Supabase:ServiceRoleKey` to work end-to-end; it hasn't been
-  exercised against a live bucket yet.
+- The image upload pipeline: implemented and verified end-to-end against a real Supabase
+  Storage bucket (`POST /api/listings/{id}/images/upload-url` and `/confirm`) — pre-signed
+  direct upload, then a server-side re-check of the uploaded object's actual size and content
+  type on confirm, rejecting unsupported content types and storage keys that don't belong to
+  the listing being confirmed. Needs `Supabase:ServiceRoleKey` set and a `listing-images`
+  bucket created in the target project (Storage → New bucket).
 - The first admin account: no signup UI. Create the Supabase Auth user by hand (Authentication
   → Users → Add user, in the Supabase dashboard), then insert a matching row into `Users` with
   `Role = 'Admin'` and the same `Id` (the Supabase user's UUID) — see Bootstrapping the first

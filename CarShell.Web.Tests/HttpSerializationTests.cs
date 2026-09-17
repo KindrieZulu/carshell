@@ -34,6 +34,7 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
     private int _makeId;
     private int _modelId;
     private int _suburbId;
+    private const string ImageStorageKey = "listings/test/regression-image.png";
 
     public HttpSerializationTests(CarShellWebApplicationFactory factory)
     {
@@ -80,6 +81,15 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
         _db.Listings.Add(listing);
         await _db.SaveChangesAsync();
 
+        _db.ListingImages.Add(new ListingImage
+        {
+            Id = Guid.NewGuid(),
+            ListingId = listing.Id,
+            StorageKey = ImageStorageKey,
+            Position = 0,
+        });
+        await _db.SaveChangesAsync();
+
         _listingId = listing.Id;
         _sellerId = seller.Id;
         _makeId = make.Id;
@@ -110,6 +120,23 @@ public class HttpSerializationTests : IClassFixture<CarShellWebApplicationFactor
         Assert.Equal(_listingId, detail!.Id);
         Assert.Equal(-17.8292, detail.Lat);
         Assert.Equal(FuelType.Petrol, detail.FuelType);
+    }
+
+    [Fact]
+    public async Task Detail_page_renders_the_images_full_public_storage_url()
+    {
+        // Regression coverage: the detail page used to render <img
+        // src="@image.StorageKey">, a bare relative path like
+        // "listings/{id}/{file}.png" that resolves against the site's own
+        // origin, not Supabase Storage — a 404 in any real browser. This
+        // renders the actual HTML, which none of the JSON-focused tests do.
+        var client = _factory.CreateClient();
+
+        var html = await client.GetStringAsync($"/listings/{_listingId}");
+
+        Assert.Contains(
+            $"src=\"https://example.supabase.co/storage/v1/object/public/listing-images/{ImageStorageKey}\"",
+            html);
     }
 
     [Fact]

@@ -64,7 +64,10 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   direct upload, then a server-side re-check of the uploaded object's actual size and content
   type on confirm, rejecting unsupported content types and storage keys that don't belong to
   the listing being confirmed. Needs `Supabase:ServiceRoleKey` set and a `listing-images`
-  bucket created in the target project (Storage → New bucket).
+  bucket created in the target project (Storage → New bucket), set **public** — car photos are
+  meant to be publicly visible, so both the public listing detail page and the admin's image
+  list render `{Supabase:Url}/storage/v1/object/public/{Supabase:StorageBucket}/{storageKey}`
+  directly rather than through a signed URL.
 - The first admin account: no signup UI. Create the Supabase Auth user by hand (Authentication
   → Users → Add user, in the Supabase dashboard), then insert a matching row into `Users` with
   `Role = 'Admin'` and the same `Id` (the Supabase user's UUID) — see Bootstrapping the first

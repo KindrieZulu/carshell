@@ -1,4 +1,5 @@
 @page "/admin/listings/edit"
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Edit Listing";
 }
@@ -116,6 +117,12 @@
 </section>
 
 @section Scripts {
+    <script>
+        window.CARSHELL_CONFIG = {
+            storageBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                $"{Configuration["Supabase:Url"]}/storage/v1/object/public/{Configuration["Supabase:StorageBucket"]}")),
+        };
+    </script>
     <script src="~/js/admin-auth.js"></script>
     <script>
         CarShellAdmin.requireAuth();
@@ -195,7 +202,10 @@
             list.innerHTML = '';
             for (const image of listing.images) {
                 const item = document.createElement('li');
-                item.textContent = image.storageKey;
+                const img = document.createElement('img');
+                img.src = `${window.CARSHELL_CONFIG.storageBaseUrl}/${image.storageKey}`;
+                img.alt = '';
+                item.appendChild(img);
                 list.appendChild(item);
             }
         }

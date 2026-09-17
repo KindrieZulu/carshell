@@ -1,8 +1,10 @@
 @page "/listings/{id:guid}"
 @model CarShell.Web.Pages.Listings.DetailModel
+@inject IConfiguration Configuration
 @{
     var listing = Model.Listing!;
     ViewData["Title"] = $"{listing.Year} {listing.Make.Name} {listing.Model.Name}";
+    var storageBaseUrl = $"{Configuration["Supabase:Url"]}/storage/v1/object/public/{Configuration["Supabase:StorageBucket"]}";
 }
 
 <h1>@listing.Year @listing.Make.Name @listing.Model.Name</h1>
@@ -25,7 +27,7 @@
 <div class="listing-images">
     @foreach (var image in listing.Images)
     {
-        <img src="@image.StorageKey" alt="" />
+        <img src="@($"{storageBaseUrl}/{image.StorageKey}")" alt="" />
     }
 </div>
 

@@ -1,0 +1,42 @@
+@page
+@model CarShell.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Find a car";
+}
+
+<h1>Find a car</h1>
+
+<form method="get" class="search-form">
+    <label>
+        Min price
+        <input type="number" name="MinPrice" value="@Model.MinPrice" />
+    </label>
+    <label>
+        Max price
+        <input type="number" name="MaxPrice" value="@Model.MaxPrice" />
+    </label>
+    <label>
+        Radius (miles)
+        <input type="number" name="RadiusMiles" value="@Model.RadiusMiles" />
+    </label>
+    <button type="submit">Search</button>
+</form>
+
+@if (Model.Results.Count == 0)
+{
+    <p>No cars match your search yet.</p>
+}
+else
+{
+    <ul class="listing-results">
+        @foreach (var listing in Model.Results)
+        {
+            <li>
+                <a href="/listings/@listing.Id">
+                    @listing.Year @listing.Make @listing.Model &mdash; @listing.Price.ToString("C0")
+                </a>
+                <span>@listing.Mileage.ToString("N0") miles &middot; @listing.Postcode</span>
+            </li>
+        }
+    </ul>
+}

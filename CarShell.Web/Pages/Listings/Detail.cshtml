@@ -1,0 +1,44 @@
+@page "{id:guid}"
+@model CarShell.Web.Pages.Listings.DetailModel
+@{
+    var listing = Model.Listing!;
+    ViewData["Title"] = $"{listing.Year} {listing.Make.Name} {listing.Model.Name}";
+}
+
+<h1>@listing.Year @listing.Make.Name @listing.Model.Name</h1>
+<p class="price">@listing.Price.ToString("C0")</p>
+
+<dl class="spec-list">
+    <dt>Mileage</dt><dd>@listing.Mileage.ToString("N0") miles</dd>
+    <dt>Engine</dt><dd>@listing.EngineCapacityLitres.ToString("0.0")L</dd>
+    <dt>Fuel type</dt><dd>@listing.FuelType</dd>
+    <dt>Transmission</dt><dd>@listing.Transmission</dd>
+    <dt>Body type</dt><dd>@listing.BodyType</dd>
+    <dt>Location</dt><dd>@listing.Postcode</dd>
+</dl>
+
+@if (!string.IsNullOrWhiteSpace(listing.Description))
+{
+    <p>@listing.Description</p>
+}
+
+<div class="listing-images">
+    @foreach (var image in listing.Images)
+    {
+        <img src="@image.StorageKey" alt="" />
+    }
+</div>
+
+<section class="seller-contact">
+    <h2>Contact the seller</h2>
+    @* No enquiry system until Phase 2 — the seller's own contact details are
+       shown directly, see Data Protection & Privacy in the design doc. *@
+    @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactPhone))
+    {
+        <p>Phone: @listing.Seller.ContactPhone</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactEmail))
+    {
+        <p>Email: <a href="mailto:@listing.Seller.ContactEmail">@listing.Seller.ContactEmail</a></p>
+    }
+</section>

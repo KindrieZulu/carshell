@@ -43,11 +43,42 @@ gitignored on purpose.
   server-side re-check of the uploaded object's actual size and content type on confirm. This
   needs a real Supabase project's `Supabase:ServiceRoleKey` to work end-to-end; it hasn't been
   exercised against a live bucket yet.
-- The first admin account: no signup UI. Create the Supabase Auth user by hand, then insert the
-  matching row into `users` with `role = 'admin'` directly — see "Bootstrapping the first admin"
-  in the design doc.
+- The first admin account: no signup UI. Create the Supabase Auth user by hand (Authentication
+  → Users → Add user, in the Supabase dashboard), then insert a matching row into `Users` with
+  `Role = 'Admin'` and the same `Id` (the Supabase user's UUID) — see Bootstrapping the first
+  admin below.
 - A privacy policy page (`/Privacy`) with the Phase 1 baseline content from the design doc's Data
   Protection & Privacy section — a starting draft, not reviewed legal text.
+
+## Authorization: DB-backed, not a JWT role claim
+
+Supabase's own JWT `role` claim is always `"authenticated"` for any logged-in user — it's the
+Postgres role Supabase uses for RLS, not an app-level permission. A policy built on
+`RequireRole("admin")` would never succeed against a real Supabase token. `AdminAuthorizationHandler`
+(`CarShell.Web/Auth/AdminRequirement.cs`) checks the caller's `sub` claim against the `Users`
+table instead: the JWT proves who they are, the database decides what they're allowed to do.
+
+## Bootstrapping the first admin
+
+1. In the Supabase dashboard: **Authentication → Users → Add user → Create new user**. Set an
+   email and password, and confirm the email automatically. Copy the new user's UUID.
+2. Point the app at that project:
+   ```bash
+   dotnet user-secrets set "Supabase:Url" "https://your-project.supabase.co"
+   ```
+3. Insert the matching admin row (uses the UUID and email from step 1):
+   ```sql
+   INSERT INTO "Users" ("Id", "Email", "Role", "ContactEmail", "CreatedAt")
+   VALUES ('<uuid-from-step-1>', '<email-from-step-1>', 'Admin', '<email-from-step-1>', now())
+   ON CONFLICT ("Id") DO UPDATE SET "Role" = 'Admin';
+   ```
+4. To get a bearer token for testing the admin endpoints, call Supabase Auth's password grant
+   directly (needs the project's anon key, from Settings → API):
+   ```bash
+   curl -s "https://your-project.supabase.co/auth/v1/token?grant_type=password"      -H "apikey: <anon-key>" -H "Content-Type: application/json"      -d '{"email": "<email-from-step-1>", "password": "<the password you set>"}'
+   ```
+   Use the `access_token` from the response as `Authorization: Bearer <token>` against
+   `/api/listings`.
 
 ## Tests
 

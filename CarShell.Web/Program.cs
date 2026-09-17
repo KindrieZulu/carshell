@@ -1,7 +1,9 @@
 using System.Net.Http.Headers;
+using CarShell.Web.Auth;
 using CarShell.Web.Data;
 using CarShell.Web.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -31,7 +33,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidAudience = "authenticated",
             ValidateLifetime = true,
-            RoleClaimType = "role",
         };
     });
 
@@ -40,9 +41,11 @@ builder.Services.AddAuthorization(options =>
     // Phase 1: only the admin role can create/edit/delete listings.
     // Phase 2 widens this to "admin OR (seller AND owns the listing AND
     // has an active subscription)" — an authorization rule change, not a
-    // new auth system.
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+    // new auth system. The check itself queries Users, not a JWT claim —
+    // see AdminAuthorizationHandler.
+    options.AddPolicy("AdminOnly", policy => policy.Requirements.Add(new AdminRequirement()));
 });
+builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
 
 // Distance + Price Filtering: postcodes.io resolves a postcode to lat/lng
 // once per postcode, cached in PostcodeGeocodes.

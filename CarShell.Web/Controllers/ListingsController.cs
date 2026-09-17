@@ -103,7 +103,7 @@ public class ListingsController(
             .Include(l => l.Model)
             .FirstOrDefaultAsync(l => l.Id == id, ct);
 
-        return listing is null ? NotFound() : Ok(listing);
+        return listing is null ? NotFound() : Ok(ToDetail(listing));
     }
 
     [HttpPost]
@@ -176,7 +176,7 @@ public class ListingsController(
             return Conflict("A listing with this VIN already exists for this seller.");
         }
 
-        return CreatedAtAction(nameof(GetById), new { id = listing.Id }, listing);
+        return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToDetail(listing));
     }
 
     [HttpPatch("{id:guid}")]
@@ -247,7 +247,7 @@ public class ListingsController(
             return Conflict("A listing with this VIN already exists for this seller.");
         }
 
-        return Ok(listing);
+        return Ok(ToDetail(listing));
     }
 
     [HttpDelete("{id:guid}")]
@@ -355,6 +355,34 @@ public class ListingsController(
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: "23505" };
+
+    // Never serialize the entity's raw NetTopologySuite Point directly — its
+    // unset Z coordinate is NaN, which System.Text.Json can't write, and it's
+    // not data an API consumer needs anyway when Lat/Lng are already there.
+    private static ListingDetail ToDetail(Listing listing) => new(
+        listing.Id,
+        listing.SellerId,
+        listing.MakeId,
+        listing.Make?.Name,
+        listing.ModelId,
+        listing.Model?.Name,
+        listing.Trim,
+        listing.Year,
+        listing.Mileage,
+        listing.EngineCapacityLitres,
+        listing.Price,
+        listing.FuelType,
+        listing.Transmission,
+        listing.BodyType,
+        listing.Description,
+        listing.Vin,
+        listing.Status,
+        listing.Postcode,
+        listing.Lat,
+        listing.Lng,
+        listing.CreatedAt,
+        listing.UpdatedAt,
+        listing.Images.Select(i => new ListingImageSummary(i.Id, i.StorageKey, i.Position)).ToList());
 }
 
 public record ListingSummary(
@@ -394,3 +422,30 @@ public record UpdateListingRequest(
 public record RequestImageUploadRequest(string ContentType);
 
 public record ConfirmImageUploadRequest(string StorageKey);
+
+public record ListingImageSummary(Guid Id, string StorageKey, int Position);
+
+public record ListingDetail(
+    Guid Id,
+    Guid SellerId,
+    int MakeId,
+    string? MakeName,
+    int ModelId,
+    string? ModelName,
+    string? Trim,
+    int Year,
+    int Mileage,
+    decimal EngineCapacityLitres,
+    decimal Price,
+    FuelType FuelType,
+    TransmissionType Transmission,
+    BodyType BodyType,
+    string? Description,
+    string Vin,
+    ListingStatus Status,
+    string Postcode,
+    double Lat,
+    double Lng,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<ListingImageSummary> Images);

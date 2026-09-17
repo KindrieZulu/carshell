@@ -1,9 +1,12 @@
+using System.Globalization;
 using System.Net.Http.Headers;
+using System.Text.Json.Serialization;
 using CarShell.Web.Auth;
 using CarShell.Web.Data;
 using CarShell.Web.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -69,9 +72,21 @@ builder.Services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>(
 });
 
 builder.Services.AddRazorPages();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 var app = builder.Build();
+
+// A UK-facing marketplace: without this, decimal/currency formatting (e.g.
+// Listing.Price.ToString("C0") in the Razor pages) falls back to whatever
+// culture the host OS happens to have, which is $ on this dev machine.
+var ukCulture = new CultureInfo("en-GB");
+app.UseRequestLocalization(new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(ukCulture),
+    SupportedCultures = [ukCulture],
+    SupportedUICultures = [ukCulture],
+});
 
 if (!app.Environment.IsDevelopment())
 {
@@ -90,3 +105,6 @@ app.MapRazorPages();
 app.MapControllers();
 
 app.Run();
+
+// Makes the top-level Program class visible to WebApplicationFactory<Program> in tests.
+public partial class Program;

@@ -86,7 +86,7 @@ public class ListingWriteTests : IAsyncLifetime
         var result = await controller.Create(ValidCreateRequest(), default);
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
-        var listing = Assert.IsType<Listing>(created.Value);
+        var listing = Assert.IsType<ListingDetail>(created.Value);
 
         Assert.Equal(ListingStatus.Active, listing.Status);
         Assert.Equal(52.0, listing.Lat);
@@ -127,7 +127,7 @@ public class ListingWriteTests : IAsyncLifetime
     {
         var controller = BuildController();
         var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
-        var listing = (Listing)created.Value!;
+        var listing = (ListingDetail)created.Value!;
 
         var result = await controller.Update(
             listing.Id,
@@ -143,7 +143,7 @@ public class ListingWriteTests : IAsyncLifetime
     {
         var controller = BuildController();
         var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
-        var listing = (Listing)created.Value!;
+        var listing = (ListingDetail)created.Value!;
 
         var result = await controller.Update(
             listing.Id,
@@ -164,7 +164,7 @@ public class ListingWriteTests : IAsyncLifetime
     {
         var controller = BuildController();
         var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
-        var listing = (Listing)created.Value!;
+        var listing = (ListingDetail)created.Value!;
 
         var result = await controller.Delete(listing.Id, default);
 
@@ -189,7 +189,7 @@ public class ListingWriteTests : IAsyncLifetime
         var result = await controller.Create(ValidCreateRequest(), default);
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
-        var listing = Assert.IsType<Listing>(created.Value);
+        var listing = Assert.IsType<ListingDetail>(created.Value);
 
         // SW1A 1AA is Buckingham Palace — central London.
         Assert.InRange(listing.Lat, 51.4, 51.6);

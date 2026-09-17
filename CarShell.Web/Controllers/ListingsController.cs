@@ -14,7 +14,8 @@ namespace CarShell.Web.Controllers;
 // Matches the API Surface (Phase 1) section of the design doc.
 [ApiController]
 [Route("api/listings")]
-public class ListingsController(CarShellDbContext db, ISupabaseStorageService storage) : ControllerBase
+public class ListingsController(
+    CarShellDbContext db, ISupabaseStorageService storage, ILogger<ListingsController> logger) : ControllerBase
 {
     private static readonly GeometryFactory GeometryFactory =
         NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
@@ -197,6 +198,8 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
         }
 
         listing.Suburb = suburb;
+        logger.LogInformation(
+            "Listing {ListingId} created by {SellerId} (VIN {Vin})", listing.Id, sellerId, vin);
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, ToDetail(listing));
     }
 
@@ -209,6 +212,12 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
         {
             return NotFound();
         }
+
+        // Optimistic concurrency: the client must send back the Version it
+        // last read. If someone else's write landed in between, the xmin
+        // this compares against in the UPDATE's WHERE clause no longer
+        // matches, zero rows update, and SaveChangesAsync throws below.
+        db.Entry(listing).Property(l => l.Version).OriginalValue = request.Version;
 
         if (request.SuburbId is not null && request.SuburbId.Value != listing.SuburbId)
         {
@@ -254,6 +263,9 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
                 ChangedAt = DateTimeOffset.UtcNow,
                 ChangedBy = User.GetUserId(),
             });
+            logger.LogInformation(
+                "Listing {ListingId} status changed {FromStatus} -> {ToStatus} by {UserId}",
+                listing.Id, listing.Status, request.Status.Value, User.GetUserId());
             listing.Status = request.Status.Value;
         }
 
@@ -262,6 +274,10 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
         try
         {
             await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict("This listing was changed by someone else since you loaded it. Reload and try again.");
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -298,6 +314,7 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
             listing.Status = ListingStatus.Removed;
             listing.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
+            logger.LogInformation("Listing {ListingId} soft-deleted by {UserId}", listing.Id, User.GetUserId());
         }
 
         return NoContent();
@@ -408,6 +425,7 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
         listing.Lng,
         listing.CreatedAt,
         listing.UpdatedAt,
+        listing.Version,
         listing.Images.Select(i => new ListingImageSummary(i.Id, i.StorageKey, i.Position)).ToList());
 }
 
@@ -446,7 +464,8 @@ public record UpdateListingRequest(
     string? Description,
     int? SuburbId,
     ListingStatus? Status,
-    decimal? SalePrice);
+    decimal? SalePrice,
+    uint Version);
 
 public record RequestImageUploadRequest(string ContentType);
 
@@ -479,4 +498,5 @@ public record ListingDetail(
     double Lng,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
+    uint Version,
     IReadOnlyList<ListingImageSummary> Images);

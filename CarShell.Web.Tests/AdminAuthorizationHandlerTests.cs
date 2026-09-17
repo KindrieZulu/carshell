@@ -4,6 +4,7 @@ using CarShell.Web.Data;
 using CarShell.Web.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.EntityFrameworkCore.Storage;
 using Xunit;
 
@@ -39,7 +40,7 @@ public class AdminAuthorizationHandlerTests : IAsyncLifetime
         _db.Users.Add(admin);
         await _db.SaveChangesAsync();
 
-        var handler = new AdminAuthorizationHandler(_db);
+        var handler = new AdminAuthorizationHandler(_db, NullLogger<AdminAuthorizationHandler>.Instance);
         var requirement = new AdminRequirement();
         var context = new AuthorizationHandlerContext([requirement], PrincipalFor(admin.Id), resource: null);
 
@@ -55,7 +56,7 @@ public class AdminAuthorizationHandlerTests : IAsyncLifetime
         _db.Users.Add(seller);
         await _db.SaveChangesAsync();
 
-        var handler = new AdminAuthorizationHandler(_db);
+        var handler = new AdminAuthorizationHandler(_db, NullLogger<AdminAuthorizationHandler>.Instance);
         var requirement = new AdminRequirement();
         var context = new AuthorizationHandlerContext([requirement], PrincipalFor(seller.Id), resource: null);
 
@@ -67,7 +68,7 @@ public class AdminAuthorizationHandlerTests : IAsyncLifetime
     [Fact]
     public async Task Fails_when_the_caller_has_no_matching_user_row()
     {
-        var handler = new AdminAuthorizationHandler(_db);
+        var handler = new AdminAuthorizationHandler(_db, NullLogger<AdminAuthorizationHandler>.Instance);
         var requirement = new AdminRequirement();
         var context = new AuthorizationHandlerContext([requirement], PrincipalFor(Guid.NewGuid()), resource: null);
 

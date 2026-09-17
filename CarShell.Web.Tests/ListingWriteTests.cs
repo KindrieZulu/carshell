@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CarShell.Web.Controllers;
+using Microsoft.Extensions.Logging.Abstractions;
 using CarShell.Web.Data;
 using CarShell.Web.Data.Entities;
 using Microsoft.AspNetCore.Http;
@@ -60,7 +61,7 @@ public class ListingWriteTests : IAsyncLifetime
 
     private ListingsController BuildController()
     {
-        var controller = new ListingsController(_db, new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService(), NullLogger<ListingsController>.Instance);
 
         var claims = new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, _adminId.ToString()) });
         controller.ControllerContext = new ControllerContext
@@ -149,7 +150,7 @@ public class ListingWriteTests : IAsyncLifetime
         var result = await controller.Update(
             listing.Id,
             new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null,
-                ListingStatus.Sold, null),
+                ListingStatus.Sold, null, listing.Version),
             default);
 
         Assert.IsType<BadRequestObjectResult>(result);
@@ -165,7 +166,7 @@ public class ListingWriteTests : IAsyncLifetime
         var result = await controller.Update(
             listing.Id,
             new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null,
-                ListingStatus.Sold, 11500m),
+                ListingStatus.Sold, 11500m, listing.Version),
             default);
 
         Assert.IsType<OkObjectResult>(result);
@@ -239,5 +240,34 @@ public class ListingWriteTests : IAsyncLifetime
         var own = Assert.Single(mine);
         Assert.Equal(listing.Id, own.Id);
         Assert.Equal(ListingStatus.Removed, own.Status);
+    }
+
+    [Fact]
+    public async Task Update_rejects_a_write_based_on_a_stale_version()
+    {
+        var controller = BuildController();
+        var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
+        var listing = (ListingDetail)created.Value!;
+
+        // Someone else's edit lands first, bumping the row's xmin.
+        var firstEdit = await controller.Update(
+            listing.Id,
+            new UpdateListingRequest(null, null, "First edit", null, null, null, null, null, null, null, null,
+                null, null, null, listing.Version),
+            default);
+        Assert.IsType<OkObjectResult>(firstEdit);
+
+        // A second edit still holding the original (now stale) Version should
+        // be rejected rather than silently overwriting the first edit.
+        var staleEdit = await controller.Update(
+            listing.Id,
+            new UpdateListingRequest(null, null, "Stale edit", null, null, null, null, null, null, null, null,
+                null, null, null, listing.Version),
+            default);
+
+        Assert.IsType<ConflictObjectResult>(staleEdit);
+
+        var reloaded = await _db.Listings.AsNoTracking().SingleAsync(l => l.Id == listing.Id);
+        Assert.Equal("First edit", reloaded.Trim);
     }
 }

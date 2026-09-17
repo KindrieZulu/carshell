@@ -50,6 +50,7 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
             e.Property(l => l.Price).HasColumnType("decimal(10,2)");
             e.Property(l => l.Vin).HasMaxLength(17).IsRequired();
             e.Property(l => l.Location).HasColumnType("geography (point)");
+            e.Property(l => l.Version).IsRowVersion();
 
             e.HasOne(l => l.Seller).WithMany(u => u.Listings).HasForeignKey(l => l.SellerId);
             e.HasOne(l => l.Make).WithMany().HasForeignKey(l => l.MakeId);

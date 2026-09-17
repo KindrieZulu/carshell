@@ -1,4 +1,5 @@
 using CarShell.Web.Controllers;
+using Microsoft.Extensions.Logging.Abstractions;
 using CarShell.Web.Data;
 using CarShell.Web.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -60,7 +61,7 @@ public class SearchFilteringTests : IAsyncLifetime
             BuildListing(20000m, -17.8292, 31.0522, sellerId));
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService(), NullLogger<ListingsController>.Instance);
         var result = await controller.Search(
             lat: null, lng: null, radiusKm: null,
             minPrice: 8000m, maxPrice: 15000m,
@@ -85,7 +86,7 @@ public class SearchFilteringTests : IAsyncLifetime
         _db.Listings.AddRange(near, far);
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService(), NullLogger<ListingsController>.Instance);
         var result = await controller.Search(
             lat: -17.8292, lng: 31.0522, radiusKm: 20,
             minPrice: null, maxPrice: null,
@@ -110,7 +111,7 @@ public class SearchFilteringTests : IAsyncLifetime
         _db.Listings.Add(draft);
         await _db.SaveChangesAsync();
 
-        var controller = new ListingsController(_db, new ThrowingStorageService());
+        var controller = new ListingsController(_db, new ThrowingStorageService(), NullLogger<ListingsController>.Instance);
         var result = await controller.Search(
             lat: null, lng: null, radiusKm: null,
             minPrice: null, maxPrice: null,

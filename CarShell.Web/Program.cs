@@ -9,8 +9,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// System Logs & Reporting: structured logs for every request, every
+// authorization decision, and every state change, shipped to whatever the
+// hosting platform's own log stream captures from stdout — Render's
+// built-in log stream at Phase 0, per the design doc, rather than a
+// separate logging service nobody's set up yet.
+builder.Host.UseSerilog((context, services, loggerConfig) => loggerConfig
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
 builder.Services.AddDbContext<CarShellDbContext>(options =>
     options.UseNpgsql(
@@ -68,7 +79,19 @@ builder.Services.AddRazorPages();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
+// No API contract was one of the design doc's own "what's missing" findings:
+// a backend serving a web client, and eventually a mobile client, should
+// publish a generated, versioned OpenAPI spec rather than leaving "shared
+// types across clients" as an aspiration with no actual mechanism.
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "CarShell API", Version = "v1" });
+});
+
 var app = builder.Build();
+
+app.UseSerilogRequestLogging();
 
 // Prices are USD, formatted explicitly with a literal "$" in the Razor
 // pages rather than ToString("C0") — a culture's currency symbol depends on
@@ -86,6 +109,11 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
+}
+else
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();

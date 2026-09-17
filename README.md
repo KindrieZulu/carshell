@@ -72,6 +72,20 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   → Users → Add user, in the Supabase dashboard), then insert a matching row into `Users` with
   `Role = 'Admin'` and the same `Id` (the Supabase user's UUID) — see Bootstrapping the first
   admin below.
+- Structured logging via Serilog, writing to the console (Render's own log stream captures
+  stdout at Phase 0, no separate logging service needed) — every request via
+  `UseSerilogRequestLogging()`, every `AdminOnly` authorization decision, and every listing
+  state change (create, status transition, soft delete), all called out by name in the design
+  doc's own "what's missing" review.
+- A generated OpenAPI spec at `/swagger/v1/swagger.json` (interactive UI at `/swagger` in
+  Development), via Swashbuckle — the doc's own review flags "no API contract" as a real gap
+  for a backend meant to eventually serve a mobile client too.
+- Optimistic concurrency control on listing edits: `Listing.Version` maps to Postgres's own
+  `xmin` system column (no extra column, no migration writes anything — Npgsql's migration
+  generator recognizes this pattern and applies no real DDL). `PATCH /api/listings/{id}` requires
+  the caller's last-known `version`; a write based on a stale version returns `409 Conflict`
+  rather than silently clobbering someone else's edit. Closes the "two admins editing the same
+  listing" gap the design doc's review calls out as cheap to close.
 - A privacy policy page (`/Privacy`) with the Phase 1 baseline content from the design doc's Data
   Protection & Privacy section — a starting draft, not reviewed legal text.
 

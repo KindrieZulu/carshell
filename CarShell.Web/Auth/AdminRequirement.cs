@@ -13,7 +13,8 @@ public class AdminRequirement : IAuthorizationRequirement;
 // caller's sub, not a claim on the token: the JWT proves who they are, our
 // database decides what they can do. See Auth & Security Architecture in the
 // design doc.
-public class AdminAuthorizationHandler(CarShellDbContext db) : AuthorizationHandler<AdminRequirement>
+public class AdminAuthorizationHandler(CarShellDbContext db, ILogger<AdminAuthorizationHandler> logger)
+    : AuthorizationHandler<AdminRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, AdminRequirement requirement)
@@ -25,11 +26,17 @@ public class AdminAuthorizationHandler(CarShellDbContext db) : AuthorizationHand
         }
         catch (InvalidOperationException)
         {
+            logger.LogInformation("AdminOnly authorization denied: no valid sub claim on the request");
             return;
         }
 
         var isAdmin = await db.Users.AsNoTracking()
             .AnyAsync(u => u.Id == userId && u.Role == UserRole.Admin);
+
+        // Every authorization decision gets logged, not just denials — see
+        // System Logs & Reporting in the design doc.
+        logger.LogInformation(
+            "AdminOnly authorization {Outcome} for user {UserId}", isAdmin ? "succeeded" : "denied", userId);
 
         if (isAdmin)
         {

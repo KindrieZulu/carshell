@@ -132,6 +132,7 @@
         const params = new URLSearchParams(window.location.search);
         const listingId = params.get('id');
         const isEditMode = Boolean(listingId);
+        let currentVersion = 0;
 
         function setError(elementId, message) {
             const el = document.getElementById(elementId);
@@ -239,6 +240,7 @@
             document.getElementById('description').value = listing.description || '';
             document.getElementById('status').value = listing.status;
             document.getElementById('sale-price-label').hidden = listing.status !== 'Sold';
+            currentVersion = listing.version;
 
             await loadImages();
         }
@@ -269,6 +271,7 @@
             const body = readForm();
 
             if (isEditMode) {
+                body.version = currentVersion;
                 const statusValue = document.getElementById('status').value;
                 body.status = statusValue;
                 body.salePrice = statusValue === 'Sold'
@@ -291,6 +294,8 @@
             }
 
             if (isEditMode) {
+                const saved = await response.json();
+                currentVersion = saved.version;
                 document.getElementById('form-success').hidden = false;
                 document.getElementById('form-success').textContent = 'Saved.';
             } else {

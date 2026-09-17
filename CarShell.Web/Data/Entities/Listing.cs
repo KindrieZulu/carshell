@@ -50,6 +50,12 @@ public class Listing
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    // Optimistic concurrency token, mapped to Postgres's own xmin system
+    // column — no extra column or write needed. Closes the "two admins
+    // editing the same listing clobber each other" gap the design doc's own
+    // review flags. See ListingsController.Update.
+    public uint Version { get; set; }
+
     public ICollection<ListingImage> Images { get; set; } = new List<ListingImage>();
     public ICollection<ListingStatusEvent> StatusEvents { get; set; } = new List<ListingStatusEvent>();
 }

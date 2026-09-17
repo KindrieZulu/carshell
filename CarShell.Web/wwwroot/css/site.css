@@ -1,6 +1,7 @@
 body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; }
-.site-header { padding: 1rem 1.5rem; border-bottom: 1px solid #e5e5e5; }
+.site-header { padding: 1rem 1.5rem; border-bottom: 1px solid #e5e5e5; display: flex; align-items: center; }
 .site-header .brand { font-weight: 700; font-size: 1.25rem; text-decoration: none; color: inherit; }
+.site-header .admin-link { margin-left: auto; font-size: 0.85rem; color: #666; text-decoration: none; }
 main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .search-form { display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .search-form label { display: flex; flex-direction: column; font-size: 0.85rem; gap: 0.25rem; }
@@ -16,3 +17,15 @@ main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
 .site-footer a { color: #666; }
 
 .location-status { color: #666; font-size: 0.85rem; }
+
+.admin-nav { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #e5e5e5; }
+.admin-nav button { margin-left: auto; }
+.admin-login { max-width: 320px; margin: 4rem auto; padding: 1.5rem; }
+.admin-login form, #listing-form { display: flex; flex-direction: column; gap: 1rem; max-width: 480px; }
+.admin-login label, #listing-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
+.admin-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.admin-table th, .admin-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; }
+.error { color: #b00020; }
+.success { color: #0a7d34; }
+#images-section { margin-top: 2rem; max-width: 480px; }
+#image-list { padding-left: 1.25rem; }

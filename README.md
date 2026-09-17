@@ -23,6 +23,7 @@ cd CarShell.Web
 dotnet restore
 dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=carshell;Username=postgres;Password=postgres"
 dotnet user-secrets set "Supabase:Url" "https://your-project.supabase.co"
+dotnet user-secrets set "Supabase:AnonKey" "<anon/publishable key, from Settings -> API>"
 dotnet ef database update
 dotnet run
 ```
@@ -50,6 +51,14 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   duplicate-VIN rejection, suburb-based location, and an append-only `ListingStatusEvents` row
   on every status change. Delete is a soft delete (`status = removed`) so sold/dispatched
   reporting keeps working against archived listings.
+- An admin UI at `/admin/login` → `/admin/listings`: log in with a Supabase-issued admin
+  account, see all of your own listings regardless of status (`GET /api/listings/mine`),
+  create/edit/mark-sold/delete, and upload images. This is the "admin upload flow" component
+  from the design doc — before this, the only way to create a listing was a raw API call with a
+  manually-fetched bearer token. It's plain vanilla JS calling the same API everything else
+  uses (see `wwwroot/js/admin-auth.js`); no separate frontend framework, per Phase 0. The
+  Supabase anon/publishable key is injected into the login page from `Supabase:AnonKey` config —
+  safe to expose client-side, it's Supabase's public, rate-limited key, not a secret.
 - The image upload pipeline: implemented (`POST /api/listings/{id}/images/upload-url` and
   `/confirm`) against Supabase Storage's REST API — pre-signed direct upload, then a
   server-side re-check of the uploaded object's actual size and content type on confirm. This

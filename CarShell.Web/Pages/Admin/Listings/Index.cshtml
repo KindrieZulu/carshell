@@ -1,0 +1,87 @@
+@page "/admin/listings"
+@{
+    ViewData["Title"] = "My Listings";
+}
+
+<nav class="admin-nav">
+    <a href="/admin/listings">My Listings</a>
+    <a href="/admin/listings/edit">+ New listing</a>
+    <button type="button" id="logout-btn">Log out</button>
+</nav>
+
+<h1>My Listings</h1>
+
+<table class="admin-table" id="listings-table" hidden>
+    <thead>
+        <tr>
+            <th>Vehicle</th>
+            <th>Location</th>
+            <th>Price</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="listings-body"></tbody>
+</table>
+<p id="empty-message" hidden>No listings yet — create your first one above.</p>
+<p id="loading-message">Loading…</p>
+
+@section Scripts {
+    <script src="~/js/admin-auth.js"></script>
+    <script>
+        CarShellAdmin.requireAuth();
+
+        document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
+
+        const statusLabels = { Draft: 'Draft', Active: 'Active', Sold: 'Sold', Removed: 'Removed' };
+
+        async function loadListings() {
+            const response = await CarShellAdmin.apiFetch('/api/listings/mine');
+            const listings = await response.json();
+
+            document.getElementById('loading-message').hidden = true;
+
+            if (listings.length === 0) {
+                document.getElementById('empty-message').hidden = false;
+                return;
+            }
+
+            const tbody = document.getElementById('listings-body');
+            tbody.innerHTML = '';
+            for (const listing of listings) {
+                const row = document.createElement('tr');
+
+                const vehicleCell = document.createElement('td');
+                vehicleCell.textContent = `${listing.year} ${listing.make} ${listing.model}`;
+                row.appendChild(vehicleCell);
+
+                const locationCell = document.createElement('td');
+                locationCell.textContent = `${listing.suburb}, ${listing.city}`;
+                row.appendChild(locationCell);
+
+                const priceCell = document.createElement('td');
+                priceCell.textContent = `$${listing.price.toLocaleString()}`;
+                row.appendChild(priceCell);
+
+                const statusCell = document.createElement('td');
+                statusCell.textContent = statusLabels[listing.status] || listing.status;
+                row.appendChild(statusCell);
+
+                const actionsCell = document.createElement('td');
+                const editLink = document.createElement('a');
+                editLink.href = `/admin/listings/edit?id=${listing.id}`;
+                editLink.textContent = 'Edit';
+                actionsCell.appendChild(editLink);
+                row.appendChild(actionsCell);
+
+                tbody.appendChild(row);
+            }
+
+            document.getElementById('listings-table').hidden = false;
+        }
+
+        loadListings().catch((err) => {
+            document.getElementById('loading-message').textContent = 'Could not load listings: ' + err.message;
+        });
+    </script>
+}

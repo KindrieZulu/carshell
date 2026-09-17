@@ -107,6 +107,25 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
         return listing is null ? NotFound() : Ok(ToDetail(listing));
     }
 
+    // Backs the admin listing-management UI: every one of the caller's own
+    // listings regardless of status, not just Active ones like the public
+    // Search endpoint returns.
+    [HttpGet("mine")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> GetMine(CancellationToken ct)
+    {
+        var sellerId = User.GetUserId();
+
+        var listings = await db.Listings.AsNoTracking()
+            .Where(l => l.SellerId == sellerId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => new MyListingSummary(
+                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Status, l.Suburb.Name, l.Suburb.City))
+            .ToListAsync(ct);
+
+        return Ok(listings);
+    }
+
     [HttpPost]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create([FromBody] CreateListingRequest request, CancellationToken ct)
@@ -394,6 +413,9 @@ public class ListingsController(CarShellDbContext db, ISupabaseStorageService st
 
 public record ListingSummary(
     Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City);
+
+public record MyListingSummary(
+    Guid Id, string Make, string Model, int Year, decimal Price, ListingStatus Status, string Suburb, string City);
 
 public record CreateListingRequest(
     int MakeId,

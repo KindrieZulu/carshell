@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using NetTopologySuite.Geometries;
 using Xunit;
 
 namespace CarShell.Web.Tests;
@@ -193,5 +194,50 @@ public class ListingWriteTests : IAsyncLifetime
             .Where(e => e.ListingId == listing.Id && e.ToStatus == ListingStatus.Removed)
             .SingleAsync();
         Assert.Equal(ListingStatus.Active, removedEvent.FromStatus);
+    }
+
+    [Fact]
+    public async Task GetMine_returns_all_of_the_callers_listings_regardless_of_status()
+    {
+        var controller = BuildController();
+        var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
+        var listing = (ListingDetail)created.Value!;
+        await controller.Delete(listing.Id, default); // soft-deletes to Removed
+
+        var otherSeller = new User { Id = Guid.NewGuid(), Email = $"{Guid.NewGuid():N}@test.local", Role = UserRole.Admin };
+        _db.Users.Add(otherSeller);
+        await _db.SaveChangesAsync();
+        _db.Listings.Add(new Listing
+        {
+            Id = Guid.NewGuid(),
+            SellerId = otherSeller.Id,
+            MakeId = _makeId,
+            ModelId = _modelId,
+            Year = 2021,
+            Mileage = 5000,
+            EngineCapacityLitres = 2.0m,
+            Price = 20000m,
+            FuelType = FuelType.Diesel,
+            Transmission = TransmissionType.Automatic,
+            BodyType = BodyType.Suv,
+            Vin = "WVWZZZ1JZXW000099",
+            Status = ListingStatus.Active,
+            SuburbId = _suburbId,
+            Lat = _suburbLat,
+            Lng = _suburbLng,
+            Location = NetTopologySuite.NtsGeometryServices.Instance
+                .CreateGeometryFactory(srid: 4326)
+                .CreatePoint(new Coordinate(_suburbLng, _suburbLat)),
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await controller.GetMine(default);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var mine = Assert.IsAssignableFrom<IEnumerable<MyListingSummary>>(ok.Value).ToList();
+
+        var own = Assert.Single(mine);
+        Assert.Equal(listing.Id, own.Id);
+        Assert.Equal(ListingStatus.Removed, own.Status);
     }
 }

@@ -1,108 +1,151 @@
 @page "/admin/listings/edit"
 @{
-    ViewData["Title"] = "Edit Listing";
+    ViewData["Title"] = "Vehicle Upload";
+    ViewData["ActiveNav"] = "upload";
     Layout = "/Pages/Admin/_AdminLayout.cshtml";
 }
 
 <div class="admin-topbar">
     <div>
-        <h1 id="page-heading">New Listing</h1>
-        <p>Fields marked required must be filled before saving.</p>
+        <h1 id="page-heading">Vehicle Intake &amp; Inventory Upload Suite</h1>
+        <p>Work through each step &mdash; fields marked required must be filled before saving.</p>
     </div>
 </div>
 
 <p id="load-error" class="error" hidden style="margin-bottom:1rem;"></p>
 
-<div class="form-layout">
-    <div>
-        <form id="listing-form">
-            <div class="form-card">
-                <h2>Vehicle details</h2>
-                <div class="form-grid">
-                    <label>
-                        Make
-                        <select id="make-id" required></select>
-                    </label>
-                    <label>
-                        Model
-                        <select id="model-id" required></select>
-                    </label>
-                    <label>
-                        Trim (optional)
-                        <input type="text" id="trim" />
-                    </label>
-                    <label>
-                        Year
-                        <input type="number" id="year" min="1950" max="2100" required />
-                    </label>
-                    <label>
-                        Mileage (km)
-                        <input type="number" id="mileage" min="0" required />
-                    </label>
-                    <label>
-                        Engine capacity (litres)
-                        <input type="number" id="engine-capacity" min="0.1" max="99.9" step="0.1" required />
-                    </label>
-                    <label>
-                        Price ($)
-                        <input type="number" id="price" min="0" required />
-                    </label>
-                    <label>
-                        VIN (17 characters)
-                        <input type="text" id="vin" maxlength="17" required />
-                    </label>
-                    <label>
-                        Fuel type
-                        <select id="fuel-type" required>
-                            <option value="Petrol">Petrol</option>
-                            <option value="Diesel">Diesel</option>
-                            <option value="Electric">Electric</option>
-                            <option value="Hybrid">Hybrid</option>
-                            <option value="PluginHybrid">Plug-in hybrid</option>
-                            <option value="Lpg">LPG</option>
-                        </select>
-                    </label>
-                    <label>
-                        Transmission
-                        <select id="transmission" required>
-                            <option value="Manual">Manual</option>
-                            <option value="Automatic">Automatic</option>
-                        </select>
-                    </label>
-                    <label>
-                        Body type
-                        <select id="body-type" required>
-                            <option value="Hatchback">Hatchback</option>
-                            <option value="Saloon">Saloon</option>
-                            <option value="Estate">Estate</option>
-                            <option value="Suv">SUV</option>
-                            <option value="Coupe">Coupe</option>
-                            <option value="Convertible">Convertible</option>
-                            <option value="Mpv">MPV</option>
-                            <option value="Pickup">Pickup</option>
-                        </select>
-                    </label>
-                    <label>
-                        Location
-                        <select id="suburb-id" required></select>
-                    </label>
-                </div>
-            </div>
-
-            <div class="form-card">
-                <h2>Description</h2>
-                <label>
-                    Description (optional)
-                    <textarea id="description" rows="5"></textarea>
-                </label>
-            </div>
-        </form>
+<div style="max-width:860px;">
+    <div class="stepper" id="stepper">
+        <button type="button" class="stepper-step active" data-step="1">
+            <span class="stepper-circle">1</span><span class="stepper-label">VIN &amp; Basic ID</span>
+        </button>
+        <span class="stepper-connector"></span>
+        <button type="button" class="stepper-step" data-step="2">
+            <span class="stepper-circle">2</span><span class="stepper-label">Powertrain Specs</span>
+        </button>
+        <span class="stepper-connector"></span>
+        <button type="button" class="stepper-step" data-step="3">
+            <span class="stepper-circle">3</span><span class="stepper-label">Media Gallery</span>
+        </button>
+        <span class="stepper-connector"></span>
+        <button type="button" class="stepper-step" data-step="4">
+            <span class="stepper-circle">4</span><span class="stepper-label">Reserve &amp; Pricing</span>
+        </button>
     </div>
 
-    <div class="form-sidebar">
-        <div class="form-card">
-            <h2>Publish</h2>
-            <div id="status-section" hidden style="margin-bottom:1rem; display:flex; flex-direction:column; gap:1rem;">
+    <form id="listing-form">
+        <div class="form-card step-panel" data-step-panel="1">
+            <h2>Basic Vehicle Registry &amp; VIN Telemetry</h2>
+            <div class="form-grid">
+                <label>
+                    VIN (17 characters)
+                    <input type="text" id="vin" maxlength="17" required />
+                </label>
+                <label>
+                    Make
+                    <select id="make-id" required></select>
+                </label>
+                <label>
+                    Model
+                    <select id="model-id" required></select>
+                </label>
+                <label>
+                    Trim (optional)
+                    <input type="text" id="trim" />
+                </label>
+                <label>
+                    Year
+                    <input type="number" id="year" min="1950" max="2100" required />
+                </label>
+                <label>
+                    Mileage (km)
+                    <input type="number" id="mileage" min="0" required />
+                </label>
+                <label>
+                    Location
+                    <select id="suburb-id" required></select>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-card step-panel" data-step-panel="2" hidden>
+            <h2>Technical Specifications &amp; Powertrain Architecture</h2>
+            <div class="form-grid">
+                <label>
+                    Engine capacity (litres)
+                    <input type="number" id="engine-capacity" min="0.1" max="99.9" step="0.1" required />
+                </label>
+                <label>
+                    Fuel type
+                    <select id="fuel-type" required>
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Electric">Electric</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="PluginHybrid">Plug-in hybrid</option>
+                        <option value="Lpg">LPG</option>
+                    </select>
+                </label>
+                <label>
+                    Transmission
+                    <select id="transmission" required>
+                        <option value="Manual">Manual</option>
+                        <option value="Automatic">Automatic</option>
+                    </select>
+                </label>
+                <label>
+                    Body type
+                    <select id="body-type" required>
+                        <option value="Hatchback">Hatchback</option>
+                        <option value="Saloon">Saloon</option>
+                        <option value="Estate">Estate</option>
+                        <option value="Suv">SUV</option>
+                        <option value="Coupe">Coupe</option>
+                        <option value="Convertible">Convertible</option>
+                        <option value="Mpv">MPV</option>
+                        <option value="Pickup">Pickup</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-card step-panel" data-step-panel="3" hidden id="media-panel">
+            <h2>Studio Media &amp; Gallery Assets</h2>
+            <div style="display:flex; gap:0.5rem; margin-bottom:1.1rem; flex-wrap:wrap;">
+                <span class="badge badge-format">JPEG</span>
+                <span class="badge badge-format">PNG</span>
+                <span class="badge badge-format">WEBP</span>
+                <span class="badge badge-format">Up to 10MB each</span>
+            </div>
+            <p id="media-locked-message" class="location-status" hidden>Save the basic vehicle details first in steps 1 and 2 &mdash; the media gallery unlocks once this listing exists.</p>
+            <div id="images-section" hidden>
+                <ul id="image-list"></ul>
+                <div class="dropzone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 16V4m0 0L7 9m5-5l5 5M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+                    <p style="margin:0 0 1rem;">Drop photos here, or choose a file</p>
+                    <div class="upload-row" style="justify-content:center;">
+                        <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" />
+                        <button type="button" id="upload-btn" class="btn btn-ghost btn-sm">Upload</button>
+                    </div>
+                </div>
+                <p id="upload-error" class="error" hidden style="margin-top:0.75rem;"></p>
+            </div>
+        </div>
+
+        <div class="form-card step-panel" data-step-panel="4" hidden>
+            <h2>Pricing Matrix &amp; Approval</h2>
+            <div class="form-grid" style="margin-bottom:1.25rem;">
+                <label>
+                    Price ($)
+                    <input type="number" id="price" min="0" required />
+                </label>
+                <label class="span-2">
+                    Description (optional)
+                    <textarea id="description" rows="4"></textarea>
+                </label>
+            </div>
+
+            <div id="status-section" hidden style="margin-bottom:1.25rem; display:flex; flex-direction:column; gap:1rem;">
                 <label>
                     Status
                     <select id="status">
@@ -117,268 +160,20 @@
                     <input type="number" id="sale-price" min="0" />
                 </label>
             </div>
-            <div style="display:flex; flex-direction:column; gap:0.6rem;">
-                <button type="submit" form="listing-form" class="btn btn-primary btn-block">Save</button>
-                <button type="button" id="delete-btn" hidden class="btn btn-danger btn-block">Delete listing</button>
-            </div>
+
+            <button type="submit" class="btn-submit-cta" id="submit-btn">Submit for Review &amp; Approval</button>
+            <button type="button" id="delete-btn" hidden class="btn btn-danger btn-block" style="margin-top:0.75rem;">Delete listing</button>
             <p id="form-error" class="error" hidden style="margin-top:0.85rem;"></p>
             <p id="form-success" class="success" hidden style="margin-top:0.85rem;"></p>
         </div>
+    </form>
 
-        <div class="form-card" id="images-section" hidden>
-            <h2>Images</h2>
-            <ul id="image-list"></ul>
-            <div class="upload-row">
-                <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" />
-                <button type="button" id="upload-btn" class="btn btn-ghost btn-sm">Upload</button>
-            </div>
-            <p id="upload-error" class="error" hidden style="margin-top:0.75rem;"></p>
-        </div>
+    <div class="step-nav">
+        <button type="button" class="btn btn-ghost" id="step-back-btn">&larr; Back</button>
+        <button type="button" class="btn btn-primary" id="step-next-btn">Continue &rarr;</button>
     </div>
 </div>
 
 @section Scripts {
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const listingId = params.get('id');
-        const isEditMode = Boolean(listingId);
-        let currentVersion = 0;
-
-        function setError(elementId, message) {
-            const el = document.getElementById(elementId);
-            el.textContent = message;
-            el.hidden = !message;
-        }
-
-        async function populateMakes(selectedMakeId) {
-            const response = await fetch('/api/makes');
-            const makes = await response.json();
-            const select = document.getElementById('make-id');
-            select.innerHTML = '';
-            for (const make of makes) {
-                const option = document.createElement('option');
-                option.value = make.id;
-                option.textContent = make.name;
-                select.appendChild(option);
-            }
-            if (selectedMakeId) {
-                select.value = selectedMakeId;
-            }
-        }
-
-        async function populateModels(makeId, selectedModelId) {
-            const response = await fetch(`/api/makes/${makeId}/models`);
-            const models = await response.json();
-            const select = document.getElementById('model-id');
-            select.innerHTML = '';
-            for (const model of models) {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = model.name;
-                select.appendChild(option);
-            }
-            if (selectedModelId) {
-                select.value = selectedModelId;
-            }
-        }
-
-        async function populateSuburbs(selectedSuburbId) {
-            const response = await fetch('/api/suburbs');
-            const suburbs = await response.json();
-            const select = document.getElementById('suburb-id');
-            select.innerHTML = '';
-            for (const suburb of suburbs) {
-                const option = document.createElement('option');
-                option.value = suburb.id;
-                option.textContent = `${suburb.city} \u2014 ${suburb.name}`;
-                select.appendChild(option);
-            }
-            if (selectedSuburbId) {
-                select.value = selectedSuburbId;
-            }
-        }
-
-        document.getElementById('make-id').addEventListener('change', (event) => {
-            populateModels(event.target.value);
-        });
-
-        document.getElementById('status').addEventListener('change', (event) => {
-            document.getElementById('sale-price-label').hidden = event.target.value !== 'Sold';
-        });
-
-        async function loadImages() {
-            const response = await CarShellAdmin.apiFetch(`/api/listings/${listingId}`);
-            const listing = await response.json();
-            const list = document.getElementById('image-list');
-            list.innerHTML = '';
-            for (const image of listing.images) {
-                const item = document.createElement('li');
-                const img = document.createElement('img');
-                img.src = `${window.CARSHELL_CONFIG.storageBaseUrl}/${image.storageKey}`;
-                img.alt = '';
-                item.appendChild(img);
-                list.appendChild(item);
-            }
-        }
-
-        async function loadExistingListing() {
-            document.getElementById('page-heading').textContent = 'Edit Listing';
-            document.getElementById('status-section').hidden = false;
-            document.getElementById('delete-btn').hidden = false;
-            document.getElementById('images-section').hidden = false;
-
-            const response = await CarShellAdmin.apiFetch(`/api/listings/${listingId}`);
-            if (!response.ok) {
-                setError('load-error', 'Could not load this listing.');
-                return;
-            }
-            const listing = await response.json();
-
-            await populateMakes(listing.makeId);
-            await populateModels(listing.makeId, listing.modelId);
-            await populateSuburbs(listing.suburbId);
-
-            document.getElementById('trim').value = listing.trim || '';
-            document.getElementById('year').value = listing.year;
-            document.getElementById('mileage').value = listing.mileage;
-            document.getElementById('engine-capacity').value = listing.engineCapacityLitres;
-            document.getElementById('price').value = listing.price;
-            document.getElementById('fuel-type').value = listing.fuelType;
-            document.getElementById('transmission').value = listing.transmission;
-            document.getElementById('body-type').value = listing.bodyType;
-            document.getElementById('vin').value = listing.vin;
-            document.getElementById('description').value = listing.description || '';
-            document.getElementById('status').value = listing.status;
-            document.getElementById('sale-price-label').hidden = listing.status !== 'Sold';
-            currentVersion = listing.version;
-
-            await loadImages();
-        }
-
-        function readForm() {
-            return {
-                makeId: Number(document.getElementById('make-id').value),
-                modelId: Number(document.getElementById('model-id').value),
-                trim: document.getElementById('trim').value || null,
-                year: Number(document.getElementById('year').value),
-                mileage: Number(document.getElementById('mileage').value),
-                engineCapacityLitres: Number(document.getElementById('engine-capacity').value),
-                price: Number(document.getElementById('price').value),
-                fuelType: document.getElementById('fuel-type').value,
-                transmission: document.getElementById('transmission').value,
-                bodyType: document.getElementById('body-type').value,
-                description: document.getElementById('description').value || null,
-                vin: document.getElementById('vin').value,
-                suburbId: Number(document.getElementById('suburb-id').value),
-            };
-        }
-
-        document.getElementById('listing-form').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            setError('form-error', '');
-            document.getElementById('form-success').hidden = true;
-
-            const body = readForm();
-
-            if (isEditMode) {
-                body.version = currentVersion;
-                const statusValue = document.getElementById('status').value;
-                body.status = statusValue;
-                body.salePrice = statusValue === 'Sold'
-                    ? Number(document.getElementById('sale-price').value)
-                    : null;
-            }
-
-            const response = await CarShellAdmin.apiFetch(
-                isEditMode ? `/api/listings/${listingId}` : '/api/listings',
-                {
-                    method: isEditMode ? 'PATCH' : 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-
-            if (!response.ok) {
-                const text = await response.text();
-                setError('form-error', text || `Save failed (HTTP ${response.status}).`);
-                return;
-            }
-
-            if (isEditMode) {
-                const saved = await response.json();
-                currentVersion = saved.version;
-                document.getElementById('form-success').hidden = false;
-                document.getElementById('form-success').textContent = 'Saved.';
-            } else {
-                const created = await response.json();
-                window.location.href = `/admin/listings/edit?id=${created.id}`;
-            }
-        });
-
-        document.getElementById('delete-btn').addEventListener('click', async () => {
-            if (!confirm('Delete this listing? It will be removed from public search.')) {
-                return;
-            }
-            const response = await CarShellAdmin.apiFetch(`/api/listings/${listingId}`, { method: 'DELETE' });
-            if (response.ok) {
-                window.location.href = '/admin/listings';
-            } else {
-                setError('form-error', `Delete failed (HTTP ${response.status}).`);
-            }
-        });
-
-        document.getElementById('upload-btn').addEventListener('click', async () => {
-            setError('upload-error', '');
-            const fileInput = document.getElementById('image-file');
-            const file = fileInput.files[0];
-            if (!file) {
-                setError('upload-error', 'Choose a file first.');
-                return;
-            }
-
-            try {
-                const signResponse = await CarShellAdmin.apiFetch(`/api/listings/${listingId}/images/upload-url`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contentType: file.type }),
-                });
-                if (!signResponse.ok) {
-                    throw new Error(await signResponse.text() || 'Could not get an upload URL.');
-                }
-                const { uploadUrl, storageKey } = await signResponse.json();
-
-                const putResponse = await fetch(uploadUrl, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': file.type },
-                    body: file,
-                });
-                if (!putResponse.ok) {
-                    throw new Error('Upload to storage failed.');
-                }
-
-                const confirmResponse = await CarShellAdmin.apiFetch(`/api/listings/${listingId}/images/confirm`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ storageKey }),
-                });
-                if (!confirmResponse.ok) {
-                    throw new Error(await confirmResponse.text() || 'Could not confirm the upload.');
-                }
-
-                fileInput.value = '';
-                await loadImages();
-            } catch (err) {
-                setError('upload-error', err.message);
-            }
-        });
-
-        (async () => {
-            if (isEditMode) {
-                await loadExistingListing();
-            } else {
-                await populateMakes();
-                await populateModels(document.getElementById('make-id').value);
-                await populateSuburbs();
-            }
-        })().catch((err) => setError('load-error', err.message));
-    </script>
+    <script src="~/js/admin-upload.js"></script>
 }

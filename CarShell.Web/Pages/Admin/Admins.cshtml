@@ -1,6 +1,7 @@
 @page "/admin/admins"
 @{
     ViewData["Title"] = "Manage Admins";
+    ViewData["ActiveNav"] = "admins";
     Layout = "/Pages/Admin/_AdminLayout.cshtml";
 }
 
@@ -81,7 +82,7 @@
                 row.innerHTML = `
                     <td>${admin.email}</td>
                     <td>${admin.username || '—'}</td>
-                    <td>${admin.isSuperAdmin ? '<span class="badge badge-dot badge-active">Super admin</span>' : '<span class="badge badge-dot badge-draft">Admin</span>'}</td>
+                    <td>${admin.isSuperAdmin ? '<span class="badge badge-dot badge-full-access">Full Access</span>' : '<span class="badge badge-dot badge-standard-access">Standard Access</span>'}</td>
                     <td>${new Date(admin.createdAt).toLocaleDateString()}</td>
                 `;
                 tbody.appendChild(row);

@@ -1,62 +1,77 @@
 @page "/admin/listings"
 @{
-    ViewData["Title"] = "My Listings";
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["ActiveNav"] = "dashboard";
     Layout = "/Pages/Admin/_AdminLayout.cshtml";
 }
 
 <div class="admin-topbar">
     <div>
-        <h1>My Listings</h1>
-        <p>An overview of every listing you&rsquo;ve created, whatever its status.</p>
+        <h1>Admin Dashboard</h1>
+        <p>Portfolio health, team access, and inventory pipeline at a glance.</p>
     </div>
     <a href="/admin/listings/edit" class="btn btn-primary">+ New listing</a>
 </div>
 
 <div class="stat-grid" id="stat-grid" hidden>
     <div class="stat-card tilt-inner">
-        <div class="stat-icon stat-icon-navy">
+        <div class="stat-icon stat-icon-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="stat-value" id="stat-value">$0</div>
+        <div class="stat-label">Total portfolio value</div>
+    </div>
+    <div class="stat-card tilt-inner">
+        <div class="stat-icon stat-icon-purple">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>
         </div>
         <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-label">Total listings</div>
+        <div class="stat-label">Units</div>
     </div>
     <div class="stat-card tilt-inner">
         <div class="stat-icon stat-icon-green">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
         </div>
-        <div class="stat-value" id="stat-active">0</div>
-        <div class="stat-label">Active</div>
-    </div>
-    <div class="stat-card tilt-inner">
-        <div class="stat-icon stat-icon-gold">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M20.59 13.41L11 3.83A2 2 0 009.5 3H4a1 1 0 00-1 1v5.5a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l4.59-4.59a2 2 0 000-2.83z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
-        </div>
         <div class="stat-value" id="stat-sold">0</div>
-        <div class="stat-label">Sold</div>
+        <div class="stat-label">Deals closed</div>
     </div>
     <div class="stat-card tilt-inner">
-        <div class="stat-icon stat-icon-blue">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 15l3.5-4.5 3 3L18 8"/></svg>
+        <div class="stat-icon stat-icon-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
-        <div class="stat-value" id="stat-value">$0</div>
-        <div class="stat-label">Active listings value</div>
+        <div class="stat-value" id="stat-draft">0</div>
+        <div class="stat-label">Drafts in review</div>
     </div>
 </div>
 
-<div class="table-card">
-    <table class="admin-table" id="listings-table" hidden>
+<div class="table-card" id="governance-card" hidden style="padding:1.5rem; margin-bottom:2rem;">
+    <div class="panel-header">
+        <h2>Governance &amp; Access Control Matrix</h2>
+        <div class="actions">
+            <button type="button" class="btn btn-ghost btn-sm" disabled title="Coming soon">Audit Log</button>
+            <a href="/admin/admins" class="btn btn-ghost btn-sm">Manage Permissions</a>
+        </div>
+    </div>
+    <table class="admin-table" id="governance-table">
         <thead>
             <tr>
-                <th>Vehicle</th>
-                <th>Location</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th></th>
+                <th>Team member</th>
+                <th>Access level</th>
+                <th>Since</th>
             </tr>
         </thead>
-        <tbody id="listings-body"></tbody>
+        <tbody id="governance-body"></tbody>
     </table>
-    <div class="empty-state" id="empty-message" hidden>
+    <p id="governance-restricted" class="location-status" hidden style="padding:1.25rem 0.25rem 0;">Only a super admin can view team access. Ask one to grant you access.</p>
+</div>
+
+<div class="table-card" style="padding:1.5rem; margin-bottom:2rem;">
+    <div class="panel-header">
+        <h2>Vehicle Ingestion &amp; Validation Pipeline</h2>
+        <a href="/admin/listings/edit" class="btn btn-ghost btn-sm">+ Add vehicle</a>
+    </div>
+    <div class="pipeline-row" id="pipeline-row"></div>
+    <div class="empty-state" id="pipeline-empty" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
         <p>No listings yet &mdash; create your first one to see it here.</p>
     </div>
@@ -65,62 +80,44 @@
     </div>
 </div>
 
+<div class="panel-row-2">
+    <div class="table-card" style="padding:1.5rem;">
+        <div class="panel-header">
+            <h2>Body Type Distribution &amp; Inventory Weight</h2>
+        </div>
+        <div class="segbar" id="segbar"></div>
+        <div class="segbar-legend" id="segbar-legend"></div>
+    </div>
+
+    <div class="table-card" style="padding:1.5rem;">
+        <div class="panel-header">
+            <h2>Fleet Operations Dock</h2>
+        </div>
+        <div class="ops-dock">
+            <a href="/admin/listings/edit" class="ops-dock-item">
+                <span class="ops-dock-icon stat-icon-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg></span>
+                <span class="label">Upload a new vehicle</span>
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
+            <a href="/admin/admins" class="ops-dock-item">
+                <span class="ops-dock-icon stat-icon-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+                <span class="label">Manage admin access</span>
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
+            <a href="/" target="_blank" rel="noopener" class="ops-dock-item">
+                <span class="ops-dock-icon stat-icon-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/></svg></span>
+                <span class="label">View public inventory</span>
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </a>
+            <button type="button" class="ops-dock-item" id="refresh-dock-btn">
+                <span class="ops-dock-icon stat-icon-orange"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></span>
+                <span class="label">Refresh dashboard data</span>
+                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-    <script>
-        const statusBadgeClass = { Draft: 'badge-draft', Active: 'badge-active', Sold: 'badge-sold', Removed: 'badge-removed' };
-
-        function carIconSvg() {
-            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>';
-        }
-
-        async function loadListings() {
-            const response = await CarShellAdmin.apiFetch('/api/listings/mine');
-            const listings = await response.json();
-
-            document.getElementById('loading-message').hidden = true;
-
-            const total = listings.length;
-            const active = listings.filter((l) => l.status === 'Active');
-            const sold = listings.filter((l) => l.status === 'Sold').length;
-            const activeValue = active.reduce((sum, l) => sum + l.price, 0);
-
-            document.getElementById('stat-total').textContent = total.toLocaleString();
-            document.getElementById('stat-active').textContent = active.length.toLocaleString();
-            document.getElementById('stat-sold').textContent = sold.toLocaleString();
-            document.getElementById('stat-value').textContent = '$' + activeValue.toLocaleString();
-            document.getElementById('stat-grid').hidden = false;
-
-            if (total === 0) {
-                document.getElementById('empty-message').hidden = false;
-                return;
-            }
-
-            const tbody = document.getElementById('listings-body');
-            tbody.innerHTML = '';
-            for (const listing of listings) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>
-                        <div class="vehicle-cell">
-                            <div class="vehicle-thumb">${carIconSvg()}</div>
-                            <div>
-                                <div class="vehicle-title">${listing.year} ${listing.make} ${listing.model}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>${listing.suburb}, ${listing.city}</td>
-                    <td>$${listing.price.toLocaleString()}</td>
-                    <td><span class="badge badge-dot ${statusBadgeClass[listing.status] || ''}">${listing.status}</span></td>
-                    <td class="row-actions"><a href="/admin/listings/edit?id=${listing.id}">Edit &rarr;</a></td>
-                `;
-                tbody.appendChild(row);
-            }
-
-            document.getElementById('listings-table').hidden = false;
-        }
-
-        loadListings().catch((err) => {
-            document.getElementById('loading-message').textContent = 'Could not load listings: ' + err.message;
-        });
-    </script>
+    <script src="~/js/admin-dashboard.js"></script>
 }

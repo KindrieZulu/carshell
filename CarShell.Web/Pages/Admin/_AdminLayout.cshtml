@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@ViewData["Title"] - CarShell Admin</title>
+    <title>@ViewData["Title"] - ApexAuto Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -13,31 +13,40 @@
 <body>
     <div class="admin-shell">
         <aside class="admin-sidebar">
-            <a href="/admin/listings" class="brand"><span class="brand-mark"></span> CarShell</a>
+            <a href="/admin/listings" class="brand"><span class="brand-mark"></span> ApexAuto</a>
             <nav class="admin-nav">
-                <a href="/admin/listings">
+                <a href="/admin/listings" class="@(ViewData["ActiveNav"]?.ToString() == "dashboard" ? "active" : "")">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-                    My Listings
+                    Admin Dashboard
                 </a>
-                <a href="/admin/listings/edit">
+                <a href="/admin/listings/edit" class="@(ViewData["ActiveNav"]?.ToString() == "upload" ? "active" : "")">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
-                    New Listing
+                    Upload Car
                 </a>
-                <a href="/admin/admins">
+                <a href="/admin/admins" class="@(ViewData["ActiveNav"]?.ToString() == "admins" ? "active" : "")">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                     Manage Admins
                 </a>
             </nav>
             <div class="spacer"></div>
-            <nav class="admin-nav">
-                <button type="button" id="logout-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                    Log out
-                </button>
-            </nav>
         </aside>
-        <div class="admin-main">
-            @RenderBody()
+        <div class="admin-content">
+            <header class="apex-topbar">
+                <div class="apex-topbar-tabs">
+                    <a href="/" class="apex-tab" target="_blank" rel="noopener">Public Inventory</a>
+                </div>
+                <span class="apex-status-pill"><span class="dot"></span> Live</span>
+                <div class="apex-avatar-wrap">
+                    <button type="button" class="apex-avatar-btn" id="avatar-btn" aria-haspopup="true" aria-expanded="false">&nbsp;</button>
+                    <div class="apex-avatar-dropdown" id="avatar-dropdown" hidden>
+                        <div class="email" id="avatar-email">Signed in</div>
+                        <button type="button" id="logout-btn">Log out</button>
+                    </div>
+                </div>
+            </header>
+            <div class="admin-main">
+                @RenderBody()
+            </div>
         </div>
     </div>
 
@@ -51,6 +60,28 @@
     <script src="~/js/site.js"></script>
     <script>
         CarShellAdmin.requireAuth();
+
+        const identity = CarShellAdmin.getIdentity();
+        const avatarBtn = document.getElementById('avatar-btn');
+        const avatarEmail = document.getElementById('avatar-email');
+        if (identity && identity.email) {
+            avatarBtn.textContent = identity.email.charAt(0).toUpperCase();
+            avatarEmail.textContent = identity.email;
+        }
+
+        const avatarDropdown = document.getElementById('avatar-dropdown');
+        avatarBtn.addEventListener('click', () => {
+            const expanded = avatarBtn.getAttribute('aria-expanded') === 'true';
+            avatarBtn.setAttribute('aria-expanded', String(!expanded));
+            avatarDropdown.hidden = expanded;
+        });
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.apex-avatar-wrap')) {
+                avatarDropdown.hidden = true;
+                avatarBtn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
         document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
     </script>
     @RenderSection("Scripts", required: false)

@@ -185,8 +185,31 @@ const CarShellAdmin = (() => {
         return response;
     }
 
+    // Cosmetic only: decodes the JWT's payload (base64url, no signature
+    // check — the server is the real authority on every request) purely to
+    // show who's signed in in the top bar. Never used for authorization.
+    function decodeJwtPayload(token) {
+        try {
+            const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const json = decodeURIComponent(
+                atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+            return JSON.parse(json);
+        } catch {
+            return null;
+        }
+    }
+
+    function getIdentity() {
+        const token = getToken();
+        if (!token) {
+            return null;
+        }
+        const claims = decodeJwtPayload(token);
+        return claims ? { email: claims.email || null } : null;
+    }
+
     return {
         getToken, setToken, clearToken, getPendingToken, requireAuth, logout,
-        login, mfaEnroll, mfaVerify, apiFetch,
+        login, mfaEnroll, mfaVerify, apiFetch, getIdentity,
     };
 })();

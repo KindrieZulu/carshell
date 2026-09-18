@@ -1,0 +1,118 @@
+@page "/admin/admins"
+@{
+    ViewData["Title"] = "Manage Admins";
+    Layout = "/Pages/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-topbar">
+    <div>
+        <h1>Manage Admins</h1>
+        <p>Only a super admin can create new admin accounts. New admins can't create more admins themselves.</p>
+    </div>
+</div>
+
+<p id="access-error" class="error" hidden style="margin-bottom:1rem;"></p>
+
+<div class="form-layout" id="page-content" hidden>
+    <div>
+        <div class="table-card">
+            <table class="admin-table" id="admins-table">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                    </tr>
+                </thead>
+                <tbody id="admins-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-sidebar">
+        <div class="form-card">
+            <h2>Add an admin</h2>
+            <form id="add-admin-form" style="display:flex; flex-direction:column; gap:1rem;">
+                <label>
+                    Email
+                    <input type="email" id="new-email" required />
+                </label>
+                <label>
+                    Temporary password
+                    <input type="password" id="new-password" minlength="8" required />
+                </label>
+                <p class="location-status">They'll set up their own 2FA the first time they log in.</p>
+                <button type="submit" class="btn btn-primary btn-block">Create admin account</button>
+            </form>
+            <p id="form-error" class="error" hidden style="margin-top:0.85rem;"></p>
+            <p id="form-success" class="success" hidden style="margin-top:0.85rem;"></p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function loadAdmins() {
+            const response = await CarShellAdmin.apiFetch('/api/admin/admins');
+            if (response.status === 403) {
+                document.getElementById('access-error').hidden = false;
+                document.getElementById('access-error').textContent =
+                    "Only a super admin can manage admin accounts.";
+                return;
+            }
+            if (!response.ok) {
+                document.getElementById('access-error').hidden = false;
+                document.getElementById('access-error').textContent = 'Could not load admins.';
+                return;
+            }
+
+            const admins = await response.json();
+            document.getElementById('page-content').hidden = false;
+
+            const tbody = document.getElementById('admins-body');
+            tbody.innerHTML = '';
+            for (const admin of admins) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${admin.email}</td>
+                    <td>${admin.isSuperAdmin ? '<span class="badge badge-dot badge-active">Super admin</span>' : '<span class="badge badge-dot badge-draft">Admin</span>'}</td>
+                    <td>${new Date(admin.createdAt).toLocaleDateString()}</td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        document.getElementById('add-admin-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const errorEl = document.getElementById('form-error');
+            const successEl = document.getElementById('form-success');
+            errorEl.hidden = true;
+            successEl.hidden = true;
+
+            const response = await CarShellAdmin.apiFetch('/api/admin/admins', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('new-email').value,
+                    password: document.getElementById('new-password').value,
+                }),
+            });
+
+            if (!response.ok) {
+                errorEl.textContent = await response.text() || `Failed (HTTP ${response.status}).`;
+                errorEl.hidden = false;
+                return;
+            }
+
+            document.getElementById('add-admin-form').reset();
+            successEl.hidden = false;
+            successEl.textContent = 'Admin account created.';
+            await loadAdmins();
+        });
+
+        loadAdmins().catch((err) => {
+            document.getElementById('access-error').hidden = false;
+            document.getElementById('access-error').textContent = err.message;
+        });
+    </script>
+}

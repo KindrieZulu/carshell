@@ -17,4 +17,10 @@ public static class ClaimsPrincipalExtensions
         }
         return id;
     }
+
+    // "aal2" means the caller completed a second factor (TOTP) on this
+    // session, not just email+password (aal1). Supabase issues this claim
+    // itself once MFA verification succeeds — see AdminAuthorizationHandler.
+    public static bool HasCompletedMfa(this ClaimsPrincipal user) =>
+        user.FindFirstValue("aal") == "aal2";
 }

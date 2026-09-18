@@ -58,6 +58,13 @@
 
 * { box-sizing: border-box; }
 
+/* The [hidden] HTML attribute sets display:none via the browser's default
+   stylesheet at normal priority, so any element that also has a class
+   setting its own `display` (e.g. .stat-grid's display:grid) silently wins
+   over it in the cascade — hidden="" then does nothing, a real bug this
+   design system hit more than once. Force it to actually hide things. */
+[hidden] { display: none !important; }
+
 body {
   font-family: var(--font-sans);
   margin: 0;

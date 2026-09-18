@@ -33,12 +33,18 @@ public class AdminAuthorizationHandler(CarShellDbContext db, ILogger<AdminAuthor
         var isAdmin = await db.Users.AsNoTracking()
             .AnyAsync(u => u.Id == userId && u.Role == UserRole.Admin);
 
+        // Admin actions require a completed second factor, not just a
+        // password — enforced here, not just at login, so a stale aal1
+        // session token can never be replayed against a privileged endpoint.
+        var succeeded = isAdmin && context.User.HasCompletedMfa();
+
         // Every authorization decision gets logged, not just denials — see
         // System Logs & Reporting in the design doc.
         logger.LogInformation(
-            "AdminOnly authorization {Outcome} for user {UserId}", isAdmin ? "succeeded" : "denied", userId);
+            "AdminOnly authorization {Outcome} for user {UserId} (isAdmin={IsAdmin}, mfa={HasMfa})",
+            succeeded ? "succeeded" : "denied", userId, isAdmin, context.User.HasCompletedMfa());
 
-        if (isAdmin)
+        if (succeeded)
         {
             context.Succeed(requirement);
         }

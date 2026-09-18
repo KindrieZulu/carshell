@@ -58,8 +58,11 @@ builder.Services.AddAuthorization(options =>
     // new auth system. The check itself queries Users, not a JWT claim —
     // see AdminAuthorizationHandler.
     options.AddPolicy("AdminOnly", policy => policy.Requirements.Add(new AdminRequirement()));
+    // Only a super admin can create other admin accounts — see SuperAdminRequirement.
+    options.AddPolicy("SuperAdminOnly", policy => policy.Requirements.Add(new SuperAdminRequirement()));
 });
 builder.Services.AddScoped<IAuthorizationHandler, AdminAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, SuperAdminAuthorizationHandler>();
 
 // Image Upload Pipeline: talks to Supabase Storage's REST API using the
 // service-role key, never exposed to the client. Needs Supabase:Url and
@@ -72,6 +75,23 @@ builder.Services.AddHttpClient<ISupabaseStorageService, SupabaseStorageService>(
     if (!string.IsNullOrEmpty(serviceRoleKey))
     {
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", serviceRoleKey);
+    }
+});
+
+// Creating admin accounts: Supabase Auth's Admin API, same service-role key
+// as Storage above, never exposed to the client. Unlike Storage, the Auth
+// (GoTrue) routes behind Supabase's gateway reject a request that has
+// Authorization but no apikey header — confirmed by testing directly
+// against a real project, not assumed from docs.
+builder.Services.AddHttpClient<ISupabaseAuthAdminService, SupabaseAuthAdminService>((sp, client) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    client.BaseAddress = new Uri($"{config["Supabase:Url"]}/auth/v1/");
+    var serviceRoleKey = config["Supabase:ServiceRoleKey"];
+    if (!string.IsNullOrEmpty(serviceRoleKey))
+    {
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", serviceRoleKey);
+        client.DefaultRequestHeaders.Add("apikey", serviceRoleKey);
     }
 });
 

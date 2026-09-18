@@ -83,6 +83,18 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   → Users → Add user, in the Supabase dashboard), then insert a matching row into `Users` with
   `Role = 'Admin'` and the same `Id` (the Supabase user's UUID) — see Bootstrapping the first
   admin below.
+- Mandatory TOTP two-factor authentication for every admin, enforced server-side: the JWT's
+  `aal` claim must be `aal2` (a completed second factor) for `AdminOnly`/`SuperAdminOnly` to
+  succeed at all — a password-only (`aal1`) token is rejected outright, not just discouraged by
+  the UI. First login with no enrolled factor forces `/admin/mfa-setup` (QR code + manual-entry
+  secret); a returning login with a verified factor goes to `/admin/mfa-verify` for the 6-digit
+  code. One thing worth knowing if you extend this: Supabase's Auth (GoTrue) endpoints need an
+  `apikey` header on every request *in addition to* the `Authorization: Bearer` token — Storage
+  doesn't need this, Auth does. Found by testing directly against a real project, not assumed.
+- A two-tier admin model: `Users.IsSuperAdmin` lets a super admin create other admin accounts
+  (`POST /api/admin/admins`, calling Supabase Auth's Admin API server-side with the service-role
+  key) without those new admins being able to create further admins themselves. Manage at
+  `/admin/admins`.
 - Structured logging via Serilog, writing to the console (Render's own log stream captures
   stdout at Phase 0, no separate logging service needed) — every request via
   `UseSerilogRequestLogging()`, every `AdminOnly` authorization decision, and every listing
@@ -116,21 +128,18 @@ table instead: the JWT proves who they are, the database decides what they're al
    ```bash
    dotnet user-secrets set "Supabase:Url" "https://your-project.supabase.co"
    ```
-3. Insert the matching admin row (uses the UUID and email from step 1):
+3. Insert the matching admin row (uses the UUID and email from step 1), as a super admin so
+   they can create further admins later from the UI instead of repeating this by hand:
    ```sql
-   INSERT INTO "Users" ("Id", "Email", "Role", "ContactEmail", "CreatedAt")
-   VALUES ('<uuid-from-step-1>', '<email-from-step-1>', 'Admin', '<email-from-step-1>', now())
-   ON CONFLICT ("Id") DO UPDATE SET "Role" = 'Admin';
+   INSERT INTO "Users" ("Id", "Email", "Role", "IsSuperAdmin", "ContactEmail", "CreatedAt")
+   VALUES ('<uuid-from-step-1>', '<email-from-step-1>', 'Admin', true, '<email-from-step-1>', now())
+   ON CONFLICT ("Id") DO UPDATE SET "Role" = 'Admin', "IsSuperAdmin" = true;
    ```
-4. To get a bearer token for testing the admin endpoints, call Supabase Auth's password grant
-   directly (needs the project's anon/publishable key, from Settings → API):
-   ```bash
-   curl -s "https://your-project.supabase.co/auth/v1/token?grant_type=password" \
-     -H "apikey: <anon-key>" -H "Content-Type: application/json" \
-     -d '{"email": "<email-from-step-1>", "password": "<the password you set>"}'
-   ```
-   Use the `access_token` from the response as `Authorization: Bearer <token>` against
-   `/api/listings`.
+4. Log in at `/admin/login` with that email/password. Since this account has no enrolled
+   authenticator yet, it lands on `/admin/mfa-setup` -- scan the QR code and enter the code to
+   finish. Only after that does the browser hold a token AdminOnly will actually accept; a
+   plain password-grant token (e.g. from `curl .../auth/v1/token?grant_type=password`) is aal1
+   only and gets rejected by every admin endpoint until MFA is completed.
 
 ## Tests
 

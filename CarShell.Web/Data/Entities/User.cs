@@ -10,6 +10,11 @@ public class User
     public string Email { get; set; } = default!;
     public UserRole Role { get; set; } = UserRole.Admin;
 
+    // Only meaningful when Role == Admin. A super admin can create other
+    // admin accounts; a regular admin can't — closes the "any admin can
+    // mint more admins" gap without a separate roles/permissions system.
+    public bool IsSuperAdmin { get; set; }
+
     // Shown on a seller's listings so a buyer has a way to reach them —
     // there's no in-app enquiry system until Phase 2.
     public string? ContactPhone { get; set; }

@@ -1,7 +1,7 @@
-@page "/admin/login"
+@page "/admin/mfa-verify"
 @inject IConfiguration Configuration
 @{
-    ViewData["Title"] = "Admin Login";
+    ViewData["Title"] = "Verify your code";
     Layout = null;
 }
 <!DOCTYPE html>
@@ -9,7 +9,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Login - CarShell</title>
+    <title>Verify your code - CarShell Admin</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -19,21 +19,17 @@
     <div class="admin-login-shell">
         <main class="admin-login-card">
             <div class="brand-mark-lg"></div>
-            <h1>Welcome back</h1>
-            <p class="subtitle">Sign in to manage your CarShell listings.</p>
-            <form id="login-form">
+            <h1>Enter your code</h1>
+            <p class="subtitle">Open your authenticator app and enter the current 6-digit code.</p>
+            <form id="verify-form">
                 <label>
-                    Email
-                    <input type="email" id="email" required autocomplete="username" />
+                    6-digit code
+                    <input type="text" id="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required autofocus />
                 </label>
-                <label>
-                    Password
-                    <input type="password" id="password" required autocomplete="current-password" />
-                </label>
-                <button type="submit" class="btn btn-primary btn-block">Log in</button>
+                <button type="submit" class="btn btn-primary btn-block">Verify</button>
             </form>
             <p id="error" class="error" hidden style="margin-top:1rem;"></p>
-            <p style="text-align:center; margin-top:1.5rem;"><a href="/" style="font-size:0.85rem; color:var(--color-ink-muted);">&larr; Back to site</a></p>
+            <p style="text-align:center; margin-top:1.5rem;"><a href="/admin/login" style="font-size:0.85rem; color:var(--color-ink-muted);">&larr; Back to login</a></p>
         </main>
     </div>
 
@@ -45,21 +41,20 @@
     </script>
     <script src="~/js/admin-auth.js"></script>
     <script>
-        document.getElementById('login-form').addEventListener('submit', async (event) => {
+        const params = new URLSearchParams(window.location.search);
+        const factorId = params.get('factorId');
+
+        if (!CarShellAdmin.getPendingToken() || !factorId) {
+            window.location.href = '/admin/login';
+        }
+
+        document.getElementById('verify-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const errorEl = document.getElementById('error');
             errorEl.hidden = true;
             try {
-                const result = await CarShellAdmin.login(
-                    document.getElementById('email').value,
-                    document.getElementById('password').value);
-                if (result.needsCode) {
-                    window.location.href = `/admin/mfa-verify?factorId=${encodeURIComponent(result.factorId)}`;
-                } else {
-                    // No verified authenticator yet — 2FA is mandatory, so
-                    // enrollment happens now rather than being optional.
-                    window.location.href = '/admin/mfa-setup';
-                }
+                await CarShellAdmin.mfaVerify(factorId, document.getElementById('code').value);
+                window.location.href = '/admin/listings';
             } catch (err) {
                 errorEl.textContent = err.message;
                 errorEl.hidden = false;

@@ -13,6 +13,7 @@ namespace CarShell.Web.Tests;
 // Regression coverage for the bug this handler fixes: Supabase's JWT "role"
 // claim is always "authenticated" for any logged-in user, so a policy based
 // on RequireRole("admin") could never succeed against a real Supabase token.
+// Also covers the later aal2 (completed 2FA) requirement.
 public class AdminAuthorizationHandlerTests : IAsyncLifetime
 {
     private CarShellDbContext _db = default!;
@@ -30,11 +31,18 @@ public class AdminAuthorizationHandlerTests : IAsyncLifetime
         await _db.DisposeAsync();
     }
 
-    private static ClaimsPrincipal PrincipalFor(Guid userId) =>
-        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, userId.ToString())]));
+    private static ClaimsPrincipal PrincipalFor(Guid userId, string? aal = "aal2")
+    {
+        var claims = new List<Claim> { new(ClaimTypes.NameIdentifier, userId.ToString()) };
+        if (aal is not null)
+        {
+            claims.Add(new Claim("aal", aal));
+        }
+        return new ClaimsPrincipal(new ClaimsIdentity(claims));
+    }
 
     [Fact]
-    public async Task Succeeds_when_the_caller_is_an_admin_in_the_database()
+    public async Task Succeeds_when_the_caller_is_an_admin_with_completed_mfa()
     {
         var admin = new User { Id = Guid.NewGuid(), Email = "admin@test.local", Role = UserRole.Admin };
         _db.Users.Add(admin);
@@ -42,11 +50,28 @@ public class AdminAuthorizationHandlerTests : IAsyncLifetime
 
         var handler = new AdminAuthorizationHandler(_db, NullLogger<AdminAuthorizationHandler>.Instance);
         var requirement = new AdminRequirement();
-        var context = new AuthorizationHandlerContext([requirement], PrincipalFor(admin.Id), resource: null);
+        var context = new AuthorizationHandlerContext([requirement], PrincipalFor(admin.Id, "aal2"), resource: null);
 
         await handler.HandleAsync(context);
 
         Assert.True(context.HasSucceeded);
+    }
+
+    [Fact]
+    public async Task Fails_when_the_caller_is_an_admin_but_has_not_completed_mfa()
+    {
+        var admin = new User { Id = Guid.NewGuid(), Email = "admin@test.local", Role = UserRole.Admin };
+        _db.Users.Add(admin);
+        await _db.SaveChangesAsync();
+
+        var handler = new AdminAuthorizationHandler(_db, NullLogger<AdminAuthorizationHandler>.Instance);
+        var requirement = new AdminRequirement();
+        // aal1: password verified, but the second factor was never completed.
+        var context = new AuthorizationHandlerContext([requirement], PrincipalFor(admin.Id, "aal1"), resource: null);
+
+        await handler.HandleAsync(context);
+
+        Assert.False(context.HasSucceeded);
     }
 
     [Fact]

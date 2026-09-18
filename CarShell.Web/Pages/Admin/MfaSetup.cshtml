@@ -1,0 +1,78 @@
+@page "/admin/mfa-setup"
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Set up two-factor authentication";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Set up 2FA - CarShell Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="admin-login-shell">
+        <main class="admin-login-card" style="max-width:420px;">
+            <div class="brand-mark-lg"></div>
+            <h1>Set up two-factor authentication</h1>
+            <p class="subtitle">Required for every admin account. Scan this with an authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code it shows.</p>
+
+            <div id="qr-container" style="display:flex; justify-content:center; margin:1.25rem 0; min-height:180px; align-items:center;">
+                <span style="color:var(--color-ink-muted); font-size:0.85rem;">Loading&hellip;</span>
+            </div>
+            <p id="secret-fallback" class="location-status" hidden style="text-align:center; word-break:break-all;"></p>
+
+            <form id="verify-form" style="margin-top:1rem;">
+                <label>
+                    6-digit code
+                    <input type="text" id="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" required />
+                </label>
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:1rem;">Verify &amp; continue</button>
+            </form>
+            <p id="error" class="error" hidden style="margin-top:1rem;"></p>
+        </main>
+    </div>
+
+    <script>
+        window.CARSHELL_CONFIG = {
+            supabaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["Supabase:Url"])),
+            anonKey: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Configuration["Supabase:AnonKey"])),
+        };
+    </script>
+    <script src="~/js/admin-auth.js"></script>
+    <script>
+        if (!CarShellAdmin.getPendingToken()) {
+            window.location.href = '/admin/login';
+        }
+
+        let factorId = null;
+
+        CarShellAdmin.mfaEnroll().then((result) => {
+            factorId = result.factorId;
+            document.getElementById('qr-container').innerHTML = result.qrCodeSvg;
+            document.getElementById('secret-fallback').hidden = false;
+            document.getElementById('secret-fallback').textContent = `Can't scan? Enter this code manually: ${result.secret}`;
+        }).catch((err) => {
+            document.getElementById('qr-container').textContent = err.message;
+        });
+
+        document.getElementById('verify-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const errorEl = document.getElementById('error');
+            errorEl.hidden = true;
+            try {
+                await CarShellAdmin.mfaVerify(factorId, document.getElementById('code').value);
+                window.location.href = '/admin/listings';
+            } catch (err) {
+                errorEl.textContent = err.message;
+                errorEl.hidden = false;
+            }
+        });
+    </script>
+</body>
+</html>

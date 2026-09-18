@@ -125,6 +125,30 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     SupportedUICultures = [CultureInfo.InvariantCulture],
 });
 
+// A safety net, not the primary defense (that's request validation in each
+// controller): whatever exception slips through unhandled on an /api/* route,
+// in every environment including Development, the caller gets a clean JSON
+// ProblemDetails response and never a raw stack trace. Scoped to /api so
+// Razor Pages keeps its own HTML error handling below.
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/api"),
+    apiApp => apiApp.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        context.RequestServices.GetRequiredService<ILogger<Program>>()
+            .LogError(exception, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            type = "https://tools.ietf.org/html/rfc9110#section-15.6.1",
+            title = "An unexpected error occurred.",
+            status = 500,
+            traceId = context.TraceIdentifier,
+        });
+    })));
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

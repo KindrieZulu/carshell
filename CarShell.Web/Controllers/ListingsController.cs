@@ -151,6 +151,19 @@ public class ListingsController(
             return BadRequest("Unknown suburb.");
         }
 
+        var model = await db.VehicleModels.FindAsync([request.ModelId], ct);
+        if (model is null || model.MakeId != request.MakeId)
+        {
+            return BadRequest("Unknown make/model, or the model does not belong to the given make.");
+        }
+
+        var rangeError = ValidateVehicleRanges(
+            request.Year, request.Mileage, request.EngineCapacityLitres, request.Price, request.Description);
+        if (rangeError is not null)
+        {
+            return BadRequest(rangeError);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var listing = new Listing
         {
@@ -234,8 +247,28 @@ public class ListingsController(
             listing.Location = GeometryFactory.CreatePoint(new Coordinate(suburb.Lng, suburb.Lat));
         }
 
-        if (request.MakeId is not null) listing.MakeId = request.MakeId.Value;
-        if (request.ModelId is not null) listing.ModelId = request.ModelId.Value;
+        if (request.MakeId is not null || request.ModelId is not null)
+        {
+            var newMakeId = request.MakeId ?? listing.MakeId;
+            var newModelId = request.ModelId ?? listing.ModelId;
+
+            var model = await db.VehicleModels.FindAsync([newModelId], ct);
+            if (model is null || model.MakeId != newMakeId)
+            {
+                return BadRequest("Unknown make/model, or the model does not belong to the given make.");
+            }
+
+            listing.MakeId = newMakeId;
+            listing.ModelId = newModelId;
+        }
+
+        var rangeError = ValidateVehicleRanges(
+            request.Year, request.Mileage, request.EngineCapacityLitres, request.Price, request.Description);
+        if (rangeError is not null)
+        {
+            return BadRequest(rangeError);
+        }
+
         if (request.Trim is not null) listing.Trim = request.Trim;
         if (request.Year is not null) listing.Year = request.Year.Value;
         if (request.Mileage is not null) listing.Mileage = request.Mileage.Value;
@@ -396,6 +429,37 @@ public class ListingsController(
 
     private static bool IsUniqueViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: "23505" };
+
+    // Defense in depth against the DB columns' own limits (EngineCapacityLitres
+    // is decimal(3,1), Price is decimal(10,2) -- see CarShellDbContext) and
+    // against nonsense a client could otherwise slip through with no server-side
+    // check at all, e.g. a negative price or a 9999 model year.
+    private static string? ValidateVehicleRanges(
+        int? year, int? mileage, decimal? engineCapacityLitres, decimal? price, string? description)
+    {
+        var maxYear = DateTime.UtcNow.Year + 1;
+        if (year is not null && (year < 1950 || year > maxYear))
+        {
+            return $"Year must be between 1950 and {maxYear}.";
+        }
+        if (mileage is not null && mileage < 0)
+        {
+            return "Mileage cannot be negative.";
+        }
+        if (engineCapacityLitres is not null && (engineCapacityLitres <= 0 || engineCapacityLitres > 99.9m))
+        {
+            return "Engine capacity must be greater than 0 and no more than 99.9 litres.";
+        }
+        if (price is not null && price <= 0)
+        {
+            return "Price must be greater than 0.";
+        }
+        if (description is not null && description.Length > 5000)
+        {
+            return "Description cannot exceed 5000 characters.";
+        }
+        return null;
+    }
 
     // Never serialize the entity's raw NetTopologySuite Point directly — its
     // unset Z coordinate is NaN, which System.Text.Json can't write, and it's

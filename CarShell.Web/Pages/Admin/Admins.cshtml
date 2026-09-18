@@ -20,6 +20,7 @@
                 <thead>
                     <tr>
                         <th>Email</th>
+                        <th>Username</th>
                         <th>Role</th>
                         <th>Created</th>
                     </tr>
@@ -36,6 +37,10 @@
                 <label>
                     Email
                     <input type="email" id="new-email" required />
+                </label>
+                <label>
+                    Username (optional)
+                    <input type="text" id="new-username" />
                 </label>
                 <label>
                     Temporary password
@@ -75,6 +80,7 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${admin.email}</td>
+                    <td>${admin.username || '—'}</td>
                     <td>${admin.isSuperAdmin ? '<span class="badge badge-dot badge-active">Super admin</span>' : '<span class="badge badge-dot badge-draft">Admin</span>'}</td>
                     <td>${new Date(admin.createdAt).toLocaleDateString()}</td>
                 `;
@@ -94,6 +100,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     email: document.getElementById('new-email').value,
+                    username: document.getElementById('new-username').value || null,
                     password: document.getElementById('new-password').value,
                 }),
             });

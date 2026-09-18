@@ -57,7 +57,7 @@ public class AdminUsersControllerTests : IAsyncLifetime
     {
         var controller = BuildController();
 
-        var result = await controller.Create(new CreateAdminRequest("new-admin@test.local", "a-strong-password"), default);
+        var result = await controller.Create(new CreateAdminRequest("new-admin@test.local", "a-strong-password", null), default);
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
         var summary = Assert.IsType<AdminSummary>(created.Value);
@@ -73,9 +73,9 @@ public class AdminUsersControllerTests : IAsyncLifetime
     public async Task Create_rejects_a_duplicate_email()
     {
         var controller = BuildController();
-        await controller.Create(new CreateAdminRequest("dupe@test.local", "a-strong-password"), default);
+        await controller.Create(new CreateAdminRequest("dupe@test.local", "a-strong-password", null), default);
 
-        var result = await controller.Create(new CreateAdminRequest("dupe@test.local", "another-password"), default);
+        var result = await controller.Create(new CreateAdminRequest("dupe@test.local", "another-password", null), default);
 
         Assert.IsType<ConflictObjectResult>(result);
     }
@@ -85,7 +85,7 @@ public class AdminUsersControllerTests : IAsyncLifetime
     {
         var controller = BuildController();
 
-        var result = await controller.Create(new CreateAdminRequest("short@test.local", "short"), default);
+        var result = await controller.Create(new CreateAdminRequest("short@test.local", "short", null), default);
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -95,9 +95,34 @@ public class AdminUsersControllerTests : IAsyncLifetime
     {
         var controller = BuildController(new ThrowingSupabaseAuthAdminService());
 
-        var result = await controller.Create(new CreateAdminRequest("fails@test.local", "a-strong-password"), default);
+        var result = await controller.Create(new CreateAdminRequest("fails@test.local", "a-strong-password", null), default);
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Create_persists_an_optional_username()
+    {
+        var controller = BuildController();
+
+        var result = await controller.Create(
+            new CreateAdminRequest("with-username@test.local", "a-strong-password", "thatadmin"), default);
+
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        var summary = Assert.IsType<AdminSummary>(created.Value);
+        Assert.Equal("thatadmin", summary.Username);
+    }
+
+    [Fact]
+    public async Task Create_rejects_a_duplicate_username()
+    {
+        var controller = BuildController();
+        await controller.Create(new CreateAdminRequest("first@test.local", "a-strong-password", "sharedname"), default);
+
+        var result = await controller.Create(
+            new CreateAdminRequest("second@test.local", "a-strong-password", "sharedname"), default);
+
+        Assert.IsType<ConflictObjectResult>(result);
     }
 
     [Fact]

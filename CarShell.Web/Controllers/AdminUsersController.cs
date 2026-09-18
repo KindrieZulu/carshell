@@ -23,7 +23,7 @@ public class AdminUsersController(
         var admins = await db.Users.AsNoTracking()
             .Where(u => u.Role == UserRole.Admin)
             .OrderBy(u => u.CreatedAt)
-            .Select(u => new AdminSummary(u.Id, u.Email, u.IsSuperAdmin, u.CreatedAt))
+            .Select(u => new AdminSummary(u.Id, u.Email, u.Username, u.IsSuperAdmin, u.CreatedAt))
             .ToListAsync(ct);
 
         return Ok(admins);
@@ -42,10 +42,20 @@ public class AdminUsersController(
             return BadRequest("Password must be at least 8 characters.");
         }
 
+        var username = string.IsNullOrWhiteSpace(request.Username) ? null : request.Username.Trim();
+
         var alreadyExists = await db.Users.AnyAsync(u => u.Email == email, ct);
         if (alreadyExists)
         {
             return Conflict("A user with this email already exists.");
+        }
+        if (username is not null)
+        {
+            var usernameTaken = await db.Users.AnyAsync(u => u.Username == username, ct);
+            if (usernameTaken)
+            {
+                return Conflict("That username is already taken.");
+            }
         }
 
         CreatedAuthUser created;
@@ -62,6 +72,7 @@ public class AdminUsersController(
         {
             Id = created.Id,
             Email = created.Email,
+            Username = username,
             Role = UserRole.Admin,
             IsSuperAdmin = false,
             CreatedAt = DateTimeOffset.UtcNow,
@@ -73,10 +84,11 @@ public class AdminUsersController(
             "Admin account {NewAdminId} ({Email}) created by super admin {SuperAdminId}",
             user.Id, user.Email, User.GetUserId());
 
-        return CreatedAtAction(nameof(GetAll), new AdminSummary(user.Id, user.Email, user.IsSuperAdmin, user.CreatedAt));
+        return CreatedAtAction(
+            nameof(GetAll), new AdminSummary(user.Id, user.Email, user.Username, user.IsSuperAdmin, user.CreatedAt));
     }
 }
 
-public record CreateAdminRequest(string Email, string Password);
+public record CreateAdminRequest(string Email, string Password, string? Username);
 
-public record AdminSummary(Guid Id, string Email, bool IsSuperAdmin, DateTimeOffset CreatedAt);
+public record AdminSummary(Guid Id, string Email, string? Username, bool IsSuperAdmin, DateTimeOffset CreatedAt);

@@ -83,10 +83,28 @@ const CarShellAdmin = (() => {
         return payload;
     }
 
+    // Supabase Auth itself only ever signs in by email (or phone) — a
+    // username is resolved to its email via our own API first, so from
+    // Supabase's point of view this is always an ordinary email+password
+    // grant. The lookup endpoint never sees the password.
+    async function resolveIdentifierToEmail(identifier) {
+        if (identifier.includes('@')) {
+            return identifier;
+        }
+        const response = await fetch(`/api/auth/resolve-username?username=${encodeURIComponent(identifier)}`);
+        if (!response.ok) {
+            throw new Error('No account found with that username.');
+        }
+        const payload = await response.json();
+        return payload.email;
+    }
+
     // Password step only — never returns a token usable against our API.
     // The caller decides what to do next based on whether a verified TOTP
     // factor already exists (prompt for a code) or not (force enrollment).
-    async function login(email, password) {
+    // `identifier` can be an email or a username — see resolveIdentifierToEmail.
+    async function login(identifier, password) {
+        const email = await resolveIdentifierToEmail(identifier);
         const { supabaseUrl, anonKey } = window.CARSHELL_CONFIG;
         const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
             method: 'POST',

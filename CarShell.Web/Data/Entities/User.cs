@@ -8,6 +8,12 @@ public class User
 {
     public Guid Id { get; set; }
     public string Email { get; set; } = default!;
+
+    // Optional alternate sign-in identifier — Supabase Auth itself only
+    // knows email/phone, so a username login resolves to the matching email
+    // here first, then proceeds as a normal password grant. See AuthController.
+    public string? Username { get; set; }
+
     public UserRole Role { get; set; } = UserRole.Admin;
 
     // Only meaningful when Role == Admin. A super admin can create other

@@ -95,6 +95,11 @@ PostGIS radius query as an explicit search — see `Index.cshtml`'s `Scripts` se
   (`POST /api/admin/admins`, calling Supabase Auth's Admin API server-side with the service-role
   key) without those new admins being able to create further admins themselves. Manage at
   `/admin/admins`.
+- Login by email or username: Supabase Auth itself only ever signs in by email (or phone), so a
+  username is resolved to its email via `GET /api/auth/resolve-username` -- a public endpoint by
+  necessity, since it runs before there's a session -- then proceeds as an ordinary password
+  grant. The lookup never sees the password. Set a username for an admin when creating them at
+  `/admin/admins`, or directly: `UPDATE "Users" SET "Username" = 'someadmin' WHERE "Email" = '...';`.
 - Structured logging via Serilog, writing to the console (Render's own log stream captures
   stdout at Phase 0, no separate logging service needed) — every request via
   `UseSerilogRequestLogging()`, every `AdminOnly` authorization decision, and every listing

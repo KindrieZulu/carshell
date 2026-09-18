@@ -22,6 +22,9 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
         {
             e.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
             e.HasIndex(u => u.Email).IsUnique();
+            // Postgres unique indexes treat NULLs as distinct, so this only
+            // enforces uniqueness among admins who actually set a username.
+            e.HasIndex(u => u.Username).IsUnique();
         });
 
         modelBuilder.Entity<Make>(e =>

@@ -36,3 +36,44 @@
     // admin table) can re-scan once new .tilt elements exist in the DOM.
     window.CarShellTilt = { init };
 })();
+
+
+// Header "Browse by Brand" menu: a plain toggle button + panel, no
+// dependency. Closes on an outside click or Escape so it behaves like a
+// normal dropdown even though it's built from scratch.
+(function () {
+    const toggle = document.getElementById('brand-menu-toggle');
+    const panel = document.getElementById('brand-menu-panel');
+    if (!toggle || !panel) return;
+
+    function close() {
+        panel.hidden = true;
+        toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    function open() {
+        panel.hidden = false;
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (panel.hidden) {
+            open();
+        } else {
+            close();
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!panel.hidden && !panel.contains(event.target)) {
+            close();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            close();
+        }
+    });
+})();

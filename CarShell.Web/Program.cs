@@ -161,7 +161,17 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// Without explicit Cache-Control, some browsers/proxies apply heuristic
+// freshness (RFC 7234) to CSS/JS and keep serving a pre-deploy copy for a
+// long time with no revalidation at all -- found by hitting exactly that
+// with a caching layer during this session's own testing. "no-cache" still
+// lets the browser cache the file, it just forces an If-None-Match
+// revalidation on every request, so a changed file is always picked up.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
+});
 app.UseRouting();
 
 app.UseAuthentication();

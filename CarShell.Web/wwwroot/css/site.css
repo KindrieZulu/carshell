@@ -272,6 +272,85 @@ textarea { resize: vertical; font-family: var(--font-sans); }
 }
 .site-header .admin-link:hover { background: var(--color-navy-900); color: #fff; }
 
+.brand-menu { position: relative; margin-left: 2rem; }
+.brand-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 0.25rem;
+}
+.brand-menu-toggle svg { width: 16px; height: 16px; transition: transform 0.15s var(--ease-out); }
+.brand-menu-toggle:hover { color: var(--color-ink); }
+.brand-menu-toggle[aria-expanded="true"] svg { transform: rotate(180deg); }
+.brand-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  width: min(560px, 90vw);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 0.75rem;
+  z-index: 50;
+}
+.brand-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+}
+.brand-menu-item:hover { background: var(--color-bg-alt); color: var(--color-ink); }
+.brand-menu-item-all {
+  font-weight: 600;
+  color: var(--color-navy-900);
+  border-bottom: 1px solid var(--color-border-soft);
+  border-radius: 0;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.7rem;
+}
+.brand-menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 0.5rem; max-height: 60vh; overflow-y: auto; }
+.brand-menu-count { color: var(--color-ink-faint); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.brand-menu-empty { color: var(--color-ink-muted); font-size: 0.9rem; padding: 0.5rem; }
+
+@media (max-width: 640px) {
+  .brand-menu-grid { grid-template-columns: 1fr; }
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg-alt);
+  color: var(--color-ink);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+}
+.filter-chip a {
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-full);
+}
+.filter-chip a:hover { background: var(--color-border-soft); color: var(--color-ink); }
+
 main { padding: 0; }
 main > .container { padding-top: 2rem; padding-bottom: 3rem; }
 

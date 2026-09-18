@@ -31,6 +31,7 @@
         </label>
         <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
         <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
+        <input type="hidden" name="MakeId" value="@Model.MakeId" />
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
 
@@ -38,7 +39,17 @@
 
     <div class="results-heading">
         <h2>@Model.Results.Count @(Model.Results.Count == 1 ? "car" : "cars") found</h2>
-        <span>Newest listings first</span>
+        @if (Model.SelectedMakeName is not null)
+        {
+            <span class="filter-chip">
+                @Model.SelectedMakeName
+                <a href="@Model.ClearMakeUrl" aria-label="Clear brand filter">&times;</a>
+            </span>
+        }
+        else
+        {
+            <span>Newest listings first</span>
+        }
     </div>
 
     @if (Model.Results.Count == 0)

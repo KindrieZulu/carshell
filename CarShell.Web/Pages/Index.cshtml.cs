@@ -30,7 +30,19 @@ public class IndexModel(CarShellDbContext db) : PageModel
     [BindProperty(SupportsGet = true)]
     public double? RadiusKm { get; set; }
 
+    // Set from the header's "Browse by Brand" menu (BrandMenuViewComponent) --
+    // a plain link to /?MakeId=X, not a form field, so it round-trips through
+    // an ordinary GET like every other filter here.
+    [BindProperty(SupportsGet = true)]
+    public int? MakeId { get; set; }
+
     public List<ListingRow> Results { get; private set; } = [];
+
+    public string? SelectedMakeName { get; private set; }
+
+    // Used by the "clear brand filter" link so it drops MakeId while keeping
+    // whatever other filters (price, radius, location) were already applied.
+    public string ClearMakeUrl { get; private set; } = "/";
 
     public async Task OnGetAsync(CancellationToken ct)
     {
@@ -38,6 +50,7 @@ public class IndexModel(CarShellDbContext db) : PageModel
 
         if (MinPrice is not null) query = query.Where(l => l.Price >= MinPrice);
         if (MaxPrice is not null) query = query.Where(l => l.Price <= MaxPrice);
+        if (MakeId is not null) query = query.Where(l => l.MakeId == MakeId);
 
         if (Lat is not null && Lng is not null && RadiusKm is not null)
         {
@@ -51,6 +64,20 @@ public class IndexModel(CarShellDbContext db) : PageModel
             .Take(24)
             .Select(l => new ListingRow(l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City))
             .ToListAsync(ct);
+
+        if (MakeId is not null)
+        {
+            SelectedMakeName = await db.Makes.AsNoTracking()
+                .Where(m => m.Id == MakeId)
+                .Select(m => m.Name)
+                .FirstOrDefaultAsync(ct);
+
+            var remaining = Request.Query
+                .Where(kv => kv.Key != nameof(MakeId))
+                .SelectMany(kv => kv.Value.Select(v => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(v ?? string.Empty)}"))
+                .ToList();
+            ClearMakeUrl = remaining.Count == 0 ? "/" : "/?" + string.Join("&", remaining);
+        }
     }
 
     public record ListingRow(

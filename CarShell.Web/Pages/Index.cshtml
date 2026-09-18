@@ -26,9 +26,25 @@
             Radius (km)
             <input type="number" name="RadiusKm" id="radius-km" value="@Model.RadiusKm" placeholder="50" />
         </label>
-        <label>
-            &nbsp;
-        </label>
+        @if (Model.MakeId is not null && Model.AvailableModels.Count > 0)
+        {
+            <label>
+                Model
+                <select name="ModelId" onchange="this.form.submit()">
+                    <option value="">All @Model.SelectedMakeName models</option>
+                    @foreach (var modelOption in Model.AvailableModels)
+                    {
+                        <option value="@modelOption.Id" selected="@(modelOption.Id == Model.ModelId)">@modelOption.Name (@modelOption.ListingCount)</option>
+                    }
+                </select>
+            </label>
+        }
+        else
+        {
+            <label>
+                &nbsp;
+            </label>
+        }
         <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
         <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
         <input type="hidden" name="MakeId" value="@Model.MakeId" />
@@ -46,7 +62,14 @@
                 <a href="@Model.ClearMakeUrl" aria-label="Clear brand filter">&times;</a>
             </span>
         }
-        else
+        @if (Model.SelectedModelName is not null)
+        {
+            <span class="filter-chip">
+                @Model.SelectedModelName
+                <a href="@Model.ClearModelUrl" aria-label="Clear model filter">&times;</a>
+            </span>
+        }
+        @if (Model.SelectedMakeName is null)
         {
             <span>Newest listings first</span>
         }

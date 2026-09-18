@@ -4,46 +4,78 @@
     ViewData["Title"] = "Find a car";
 }
 
-<h1>Find a car</h1>
+<section class="hero">
+    <div class="container">
+        <span class="hero-eyebrow">Zimbabwe&rsquo;s car marketplace</span>
+        <h1>Find your next car, right here in Zimbabwe</h1>
+        <p class="lede">Browse listings across Harare, Bulawayo and beyond &mdash; filtered by price and distance from wherever you are.</p>
+    </div>
+</section>
 
-<form method="get" class="search-form" id="search-form">
-    <label>
-        Min price ($)
-        <input type="number" name="MinPrice" value="@Model.MinPrice" />
-    </label>
-    <label>
-        Max price ($)
-        <input type="number" name="MaxPrice" value="@Model.MaxPrice" />
-    </label>
-    <label>
-        Radius (km)
-        <input type="number" name="RadiusKm" id="radius-km" value="@Model.RadiusKm" />
-    </label>
-    <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
-    <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
-    <button type="submit">Search</button>
-</form>
+<div class="container">
+    <form method="get" class="search-form" id="search-form">
+        <label>
+            Min price ($)
+            <input type="number" name="MinPrice" value="@Model.MinPrice" placeholder="0" />
+        </label>
+        <label>
+            Max price ($)
+            <input type="number" name="MaxPrice" value="@Model.MaxPrice" placeholder="Any" />
+        </label>
+        <label>
+            Radius (km)
+            <input type="number" name="RadiusKm" id="radius-km" value="@Model.RadiusKm" placeholder="50" />
+        </label>
+        <label>
+            &nbsp;
+        </label>
+        <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
+        <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
 
-<p id="location-status" class="location-status"></p>
+    <p id="location-status" class="location-status"></p>
 
-@if (Model.Results.Count == 0)
-{
-    <p>No cars match your search yet.</p>
-}
-else
-{
-    <ul class="listing-results">
-        @foreach (var listing in Model.Results)
-        {
-            <li>
-                <a href="/listings/@listing.Id">
-                    @listing.Year @listing.Make @listing.Model &mdash; $@listing.Price.ToString("N0")
-                </a>
-                <span>@listing.Mileage.ToString("N0") km &middot; @listing.Suburb, @listing.City</span>
-            </li>
-        }
-    </ul>
-}
+    <div class="results-heading">
+        <h2>@Model.Results.Count @(Model.Results.Count == 1 ? "car" : "cars") found</h2>
+        <span>Newest listings first</span>
+    </div>
+
+    @if (Model.Results.Count == 0)
+    {
+        <div class="empty-state card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>
+            <p>No cars match your search yet.</p>
+        </div>
+    }
+    else
+    {
+        <ul class="listing-results">
+            @foreach (var listing in Model.Results)
+            {
+                <li class="tilt">
+                    <a href="/listings/@listing.Id" class="listing-card">
+                        <div class="tilt-inner">
+                            <div class="thumb">
+                                <span class="price-tag">$@listing.Price.ToString("N0")</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>
+                            </div>
+                            <div class="body">
+                                <span class="title">@listing.Year @listing.Make @listing.Model</span>
+                                <span class="meta">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 22s7-7.58 7-12.5A7 7 0 105 9.5C5 14.42 12 22 12 22z"/><circle cx="12" cy="9.5" r="2.25"/></svg>
+                                    @listing.Suburb, @listing.City
+                                    <span class="meta-sep">&middot;</span>
+                                    @listing.Mileage.ToString("N0") km
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</div>
 
 @section Scripts {
     <script>

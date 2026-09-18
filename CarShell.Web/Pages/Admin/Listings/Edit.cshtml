@@ -1,134 +1,144 @@
 @page "/admin/listings/edit"
-@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Edit Listing";
+    Layout = "/Pages/Admin/_AdminLayout.cshtml";
 }
 
-<nav class="admin-nav">
-    <a href="/admin/listings">My Listings</a>
-    <a href="/admin/listings/edit">+ New listing</a>
-    <button type="button" id="logout-btn">Log out</button>
-</nav>
+<div class="admin-topbar">
+    <div>
+        <h1 id="page-heading">New Listing</h1>
+        <p>Fields marked required must be filled before saving.</p>
+    </div>
+</div>
 
-<h1 id="page-heading">New Listing</h1>
-<p id="load-error" class="error" hidden></p>
+<p id="load-error" class="error" hidden style="margin-bottom:1rem;"></p>
 
-<form id="listing-form">
-    <label>
-        Make
-        <select id="make-id" required></select>
-    </label>
-    <label>
-        Model
-        <select id="model-id" required></select>
-    </label>
-    <label>
-        Trim (optional)
-        <input type="text" id="trim" />
-    </label>
-    <label>
-        Year
-        <input type="number" id="year" min="1950" max="2100" required />
-    </label>
-    <label>
-        Mileage (km)
-        <input type="number" id="mileage" min="0" required />
-    </label>
-    <label>
-        Engine capacity (litres)
-        <input type="number" id="engine-capacity" min="0.1" max="99.9" step="0.1" required />
-    </label>
-    <label>
-        Price ($)
-        <input type="number" id="price" min="0" required />
-    </label>
-    <label>
-        Fuel type
-        <select id="fuel-type" required>
-            <option value="Petrol">Petrol</option>
-            <option value="Diesel">Diesel</option>
-            <option value="Electric">Electric</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="PluginHybrid">Plug-in hybrid</option>
-            <option value="Lpg">LPG</option>
-        </select>
-    </label>
-    <label>
-        Transmission
-        <select id="transmission" required>
-            <option value="Manual">Manual</option>
-            <option value="Automatic">Automatic</option>
-        </select>
-    </label>
-    <label>
-        Body type
-        <select id="body-type" required>
-            <option value="Hatchback">Hatchback</option>
-            <option value="Saloon">Saloon</option>
-            <option value="Estate">Estate</option>
-            <option value="Suv">SUV</option>
-            <option value="Coupe">Coupe</option>
-            <option value="Convertible">Convertible</option>
-            <option value="Mpv">MPV</option>
-            <option value="Pickup">Pickup</option>
-        </select>
-    </label>
-    <label>
-        VIN (17 characters)
-        <input type="text" id="vin" maxlength="17" required />
-    </label>
-    <label>
-        Location
-        <select id="suburb-id" required></select>
-    </label>
-    <label>
-        Description (optional)
-        <textarea id="description" rows="4"></textarea>
-    </label>
+<div class="form-layout">
+    <div>
+        <form id="listing-form">
+            <div class="form-card">
+                <h2>Vehicle details</h2>
+                <div class="form-grid">
+                    <label>
+                        Make
+                        <select id="make-id" required></select>
+                    </label>
+                    <label>
+                        Model
+                        <select id="model-id" required></select>
+                    </label>
+                    <label>
+                        Trim (optional)
+                        <input type="text" id="trim" />
+                    </label>
+                    <label>
+                        Year
+                        <input type="number" id="year" min="1950" max="2100" required />
+                    </label>
+                    <label>
+                        Mileage (km)
+                        <input type="number" id="mileage" min="0" required />
+                    </label>
+                    <label>
+                        Engine capacity (litres)
+                        <input type="number" id="engine-capacity" min="0.1" max="99.9" step="0.1" required />
+                    </label>
+                    <label>
+                        Price ($)
+                        <input type="number" id="price" min="0" required />
+                    </label>
+                    <label>
+                        VIN (17 characters)
+                        <input type="text" id="vin" maxlength="17" required />
+                    </label>
+                    <label>
+                        Fuel type
+                        <select id="fuel-type" required>
+                            <option value="Petrol">Petrol</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Electric">Electric</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="PluginHybrid">Plug-in hybrid</option>
+                            <option value="Lpg">LPG</option>
+                        </select>
+                    </label>
+                    <label>
+                        Transmission
+                        <select id="transmission" required>
+                            <option value="Manual">Manual</option>
+                            <option value="Automatic">Automatic</option>
+                        </select>
+                    </label>
+                    <label>
+                        Body type
+                        <select id="body-type" required>
+                            <option value="Hatchback">Hatchback</option>
+                            <option value="Saloon">Saloon</option>
+                            <option value="Estate">Estate</option>
+                            <option value="Suv">SUV</option>
+                            <option value="Coupe">Coupe</option>
+                            <option value="Convertible">Convertible</option>
+                            <option value="Mpv">MPV</option>
+                            <option value="Pickup">Pickup</option>
+                        </select>
+                    </label>
+                    <label>
+                        Location
+                        <select id="suburb-id" required></select>
+                    </label>
+                </div>
+            </div>
 
-    <div id="status-section" hidden>
-        <label>
-            Status
-            <select id="status">
-                <option value="Draft">Draft</option>
-                <option value="Active">Active</option>
-                <option value="Sold">Sold</option>
-                <option value="Removed">Removed</option>
-            </select>
-        </label>
-        <label id="sale-price-label" hidden>
-            Sale price ($)
-            <input type="number" id="sale-price" min="0" />
-        </label>
+            <div class="form-card">
+                <h2>Description</h2>
+                <label>
+                    Description (optional)
+                    <textarea id="description" rows="5"></textarea>
+                </label>
+            </div>
+        </form>
     </div>
 
-    <button type="submit">Save</button>
-    <button type="button" id="delete-btn" hidden>Delete listing</button>
-    <p id="form-error" class="error" hidden></p>
-    <p id="form-success" class="success" hidden></p>
-</form>
+    <div class="form-sidebar">
+        <div class="form-card">
+            <h2>Publish</h2>
+            <div id="status-section" hidden style="margin-bottom:1rem; display:flex; flex-direction:column; gap:1rem;">
+                <label>
+                    Status
+                    <select id="status">
+                        <option value="Draft">Draft</option>
+                        <option value="Active">Active</option>
+                        <option value="Sold">Sold</option>
+                        <option value="Removed">Removed</option>
+                    </select>
+                </label>
+                <label id="sale-price-label" hidden>
+                    Sale price ($)
+                    <input type="number" id="sale-price" min="0" />
+                </label>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                <button type="submit" form="listing-form" class="btn btn-primary btn-block">Save</button>
+                <button type="button" id="delete-btn" hidden class="btn btn-danger btn-block">Delete listing</button>
+            </div>
+            <p id="form-error" class="error" hidden style="margin-top:0.85rem;"></p>
+            <p id="form-success" class="success" hidden style="margin-top:0.85rem;"></p>
+        </div>
 
-<section id="images-section" hidden>
-    <h2>Images</h2>
-    <ul id="image-list"></ul>
-    <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" />
-    <button type="button" id="upload-btn">Upload image</button>
-    <p id="upload-error" class="error" hidden></p>
-</section>
+        <div class="form-card" id="images-section" hidden>
+            <h2>Images</h2>
+            <ul id="image-list"></ul>
+            <div class="upload-row">
+                <input type="file" id="image-file" accept="image/jpeg,image/png,image/webp" />
+                <button type="button" id="upload-btn" class="btn btn-ghost btn-sm">Upload</button>
+            </div>
+            <p id="upload-error" class="error" hidden style="margin-top:0.75rem;"></p>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
-        window.CARSHELL_CONFIG = {
-            storageBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                $"{Configuration["Supabase:Url"]}/storage/v1/object/public/{Configuration["Supabase:StorageBucket"]}")),
-        };
-    </script>
-    <script src="~/js/admin-auth.js"></script>
-    <script>
-        CarShellAdmin.requireAuth();
-
-        document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
-
         const params = new URLSearchParams(window.location.search);
         const listingId = params.get('id');
         const isEditMode = Boolean(listingId);

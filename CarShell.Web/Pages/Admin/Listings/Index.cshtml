@@ -1,39 +1,77 @@
 @page "/admin/listings"
 @{
     ViewData["Title"] = "My Listings";
+    Layout = "/Pages/Admin/_AdminLayout.cshtml";
 }
 
-<nav class="admin-nav">
-    <a href="/admin/listings">My Listings</a>
-    <a href="/admin/listings/edit">+ New listing</a>
-    <button type="button" id="logout-btn">Log out</button>
-</nav>
+<div class="admin-topbar">
+    <div>
+        <h1>My Listings</h1>
+        <p>An overview of every listing you&rsquo;ve created, whatever its status.</p>
+    </div>
+    <a href="/admin/listings/edit" class="btn btn-primary">+ New listing</a>
+</div>
 
-<h1>My Listings</h1>
+<div class="stat-grid" id="stat-grid" hidden>
+    <div class="stat-card tilt-inner">
+        <div class="stat-icon stat-icon-navy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>
+        </div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Total listings</div>
+    </div>
+    <div class="stat-card tilt-inner">
+        <div class="stat-icon stat-icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div class="stat-value" id="stat-active">0</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card tilt-inner">
+        <div class="stat-icon stat-icon-gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M20.59 13.41L11 3.83A2 2 0 009.5 3H4a1 1 0 00-1 1v5.5a2 2 0 00.59 1.41l9.58 9.58a2 2 0 002.83 0l4.59-4.59a2 2 0 000-2.83z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>
+        </div>
+        <div class="stat-value" id="stat-sold">0</div>
+        <div class="stat-label">Sold</div>
+    </div>
+    <div class="stat-card tilt-inner">
+        <div class="stat-icon stat-icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 15l3.5-4.5 3 3L18 8"/></svg>
+        </div>
+        <div class="stat-value" id="stat-value">$0</div>
+        <div class="stat-label">Active listings value</div>
+    </div>
+</div>
 
-<table class="admin-table" id="listings-table" hidden>
-    <thead>
-        <tr>
-            <th>Vehicle</th>
-            <th>Location</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody id="listings-body"></tbody>
-</table>
-<p id="empty-message" hidden>No listings yet — create your first one above.</p>
-<p id="loading-message">Loading…</p>
+<div class="table-card">
+    <table class="admin-table" id="listings-table" hidden>
+        <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>Location</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="listings-body"></tbody>
+    </table>
+    <div class="empty-state" id="empty-message" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        <p>No listings yet &mdash; create your first one to see it here.</p>
+    </div>
+    <div class="empty-state" id="loading-message">
+        <p>Loading&hellip;</p>
+    </div>
+</div>
 
 @section Scripts {
-    <script src="~/js/admin-auth.js"></script>
     <script>
-        CarShellAdmin.requireAuth();
+        const statusBadgeClass = { Draft: 'badge-draft', Active: 'badge-active', Sold: 'badge-sold', Removed: 'badge-removed' };
 
-        document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
-
-        const statusLabels = { Draft: 'Draft', Active: 'Active', Sold: 'Sold', Removed: 'Removed' };
+        function carIconSvg() {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>';
+        }
 
         async function loadListings() {
             const response = await CarShellAdmin.apiFetch('/api/listings/mine');
@@ -41,7 +79,18 @@
 
             document.getElementById('loading-message').hidden = true;
 
-            if (listings.length === 0) {
+            const total = listings.length;
+            const active = listings.filter((l) => l.status === 'Active');
+            const sold = listings.filter((l) => l.status === 'Sold').length;
+            const activeValue = active.reduce((sum, l) => sum + l.price, 0);
+
+            document.getElementById('stat-total').textContent = total.toLocaleString();
+            document.getElementById('stat-active').textContent = active.length.toLocaleString();
+            document.getElementById('stat-sold').textContent = sold.toLocaleString();
+            document.getElementById('stat-value').textContent = '$' + activeValue.toLocaleString();
+            document.getElementById('stat-grid').hidden = false;
+
+            if (total === 0) {
                 document.getElementById('empty-message').hidden = false;
                 return;
             }
@@ -50,30 +99,20 @@
             tbody.innerHTML = '';
             for (const listing of listings) {
                 const row = document.createElement('tr');
-
-                const vehicleCell = document.createElement('td');
-                vehicleCell.textContent = `${listing.year} ${listing.make} ${listing.model}`;
-                row.appendChild(vehicleCell);
-
-                const locationCell = document.createElement('td');
-                locationCell.textContent = `${listing.suburb}, ${listing.city}`;
-                row.appendChild(locationCell);
-
-                const priceCell = document.createElement('td');
-                priceCell.textContent = `$${listing.price.toLocaleString()}`;
-                row.appendChild(priceCell);
-
-                const statusCell = document.createElement('td');
-                statusCell.textContent = statusLabels[listing.status] || listing.status;
-                row.appendChild(statusCell);
-
-                const actionsCell = document.createElement('td');
-                const editLink = document.createElement('a');
-                editLink.href = `/admin/listings/edit?id=${listing.id}`;
-                editLink.textContent = 'Edit';
-                actionsCell.appendChild(editLink);
-                row.appendChild(actionsCell);
-
+                row.innerHTML = `
+                    <td>
+                        <div class="vehicle-cell">
+                            <div class="vehicle-thumb">${carIconSvg()}</div>
+                            <div>
+                                <div class="vehicle-title">${listing.year} ${listing.make} ${listing.model}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${listing.suburb}, ${listing.city}</td>
+                    <td>$${listing.price.toLocaleString()}</td>
+                    <td><span class="badge badge-dot ${statusBadgeClass[listing.status] || ''}">${listing.status}</span></td>
+                    <td class="row-actions"><a href="/admin/listings/edit?id=${listing.id}">Edit &rarr;</a></td>
+                `;
                 tbody.appendChild(row);
             }
 

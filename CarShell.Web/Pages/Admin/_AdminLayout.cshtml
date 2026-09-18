@@ -1,0 +1,54 @@
+@inject IConfiguration Configuration
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - CarShell Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <div class="admin-shell">
+        <aside class="admin-sidebar">
+            <a href="/admin/listings" class="brand"><span class="brand-mark"></span> CarShell</a>
+            <nav class="admin-nav">
+                <a href="/admin/listings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+                    My Listings
+                </a>
+                <a href="/admin/listings/edit">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+                    New Listing
+                </a>
+            </nav>
+            <div class="spacer"></div>
+            <nav class="admin-nav">
+                <button type="button" id="logout-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    Log out
+                </button>
+            </nav>
+        </aside>
+        <div class="admin-main">
+            @RenderBody()
+        </div>
+    </div>
+
+    <script>
+        window.CARSHELL_CONFIG = {
+            storageBaseUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                $"{Configuration["Supabase:Url"]}/storage/v1/object/public/{Configuration["Supabase:StorageBucket"]}")),
+        };
+    </script>
+    <script src="~/js/admin-auth.js"></script>
+    <script src="~/js/site.js"></script>
+    <script>
+        CarShellAdmin.requireAuth();
+        document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

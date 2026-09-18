@@ -7,40 +7,68 @@
     var storageBaseUrl = $"{Configuration["Supabase:Url"]}/storage/v1/object/public/{Configuration["Supabase:StorageBucket"]}";
 }
 
-<h1>@listing.Year @listing.Make.Name @listing.Model.Name</h1>
-<p class="price">$@listing.Price.ToString("N0")</p>
+<div class="container">
+    <p class="breadcrumb"><a href="/">&larr; Back to search</a></p>
 
-<dl class="spec-list">
-    <dt>Mileage</dt><dd>@listing.Mileage.ToString("N0") km</dd>
-    <dt>Engine</dt><dd>@listing.EngineCapacityLitres.ToString("0.0")L</dd>
-    <dt>Fuel type</dt><dd>@listing.FuelType</dd>
-    <dt>Transmission</dt><dd>@listing.Transmission</dd>
-    <dt>Body type</dt><dd>@listing.BodyType</dd>
-    <dt>Location</dt><dd>@listing.Suburb.Name, @listing.Suburb.City</dd>
-</dl>
-
-@if (!string.IsNullOrWhiteSpace(listing.Description))
-{
-    <p>@listing.Description</p>
-}
-
-<div class="listing-images">
-    @foreach (var image in listing.Images)
+    @if (listing.Images.Count == 0)
     {
-        <img src="@($"{storageBaseUrl}/{image.StorageKey}")" alt="" />
+        <div class="listing-images-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>
+            <span>No photos yet</span>
+        </div>
     }
+    else
+    {
+        <div class="listing-images">
+            @foreach (var image in listing.Images)
+            {
+                <img src="@($"{storageBaseUrl}/{image.StorageKey}")" alt="" />
+            }
+        </div>
+    }
+
+    <div class="detail-grid">
+        <div>
+            <h1>@listing.Year @listing.Make.Name @listing.Model.Name</h1>
+            @if (!string.IsNullOrWhiteSpace(listing.Trim))
+            {
+                <p class="location-status">@listing.Trim</p>
+            }
+
+            <dl class="spec-list">
+                <dt>Mileage</dt><dd>@listing.Mileage.ToString("N0") km</dd>
+                <dt>Engine</dt><dd>@listing.EngineCapacityLitres.ToString("0.0")L</dd>
+                <dt>Fuel type</dt><dd>@listing.FuelType</dd>
+                <dt>Transmission</dt><dd>@listing.Transmission</dd>
+                <dt>Body type</dt><dd>@listing.BodyType</dd>
+                <dt>Location</dt><dd>@listing.Suburb.Name, @listing.Suburb.City</dd>
+            </dl>
+
+            @if (!string.IsNullOrWhiteSpace(listing.Description))
+            {
+                <p>@listing.Description</p>
+            }
+        </div>
+
+        <aside class="price-card">
+            <p class="price">$@listing.Price.ToString("N0")</p>
+            <section class="seller-contact" style="margin-top:0; padding-top:0; border-top:none;">
+                <h2>Contact the seller</h2>
+                @* No enquiry system until Phase 2 — the seller's own contact details are
+                   shown directly, see Data Protection & Privacy in the design doc. *@
+                @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactPhone))
+                {
+                    <p>Phone: @listing.Seller.ContactPhone</p>
+                }
+                @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactEmail))
+                {
+                    <p>Email: <a href="mailto:@listing.Seller.ContactEmail">@listing.Seller.ContactEmail</a></p>
+                }
+                @if (string.IsNullOrWhiteSpace(listing.Seller.ContactPhone) && string.IsNullOrWhiteSpace(listing.Seller.ContactEmail))
+                {
+                    <p class="location-status">No contact details on file for this seller.</p>
+                }
+            </section>
+        </aside>
+    </div>
 </div>
-
-<section class="seller-contact">
-    <h2>Contact the seller</h2>
-    @* No enquiry system until Phase 2 — the seller's own contact details are
-       shown directly, see Data Protection & Privacy in the design doc. *@
-    @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactPhone))
-    {
-        <p>Phone: @listing.Seller.ContactPhone</p>
-    }
-    @if (!string.IsNullOrWhiteSpace(listing.Seller.ContactEmail))
-    {
-        <p>Email: <a href="mailto:@listing.Seller.ContactEmail">@listing.Seller.ContactEmail</a></p>
-    }
-</section>

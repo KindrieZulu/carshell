@@ -9,6 +9,17 @@ This is a Zimbabwe-based marketplace: prices are in USD, distances are in kilome
 location is a city/suburb picked from a reference table rather than a postcode — Zimbabwe has no
 national postcode system the way the UK does. See "Location model" below.
 
+## Design system
+
+All styling lives in one file, `wwwroot/css/site.css`: CSS custom properties for color, type,
+radius and elevation, then component classes (`.btn`, `.card`, `.badge`, `.form-card`, etc.)
+reused across every page — no per-page one-off styles, no CSS framework dependency. Public
+pages use a navy/gold "premium marketplace" palette; the admin area is a proper sidebar
+dashboard with KPI stat cards (computed client-side from `/api/listings/mine`, no new endpoint)
+and a status-badge table. The only JS-driven visual effect is `wwwroot/js/site.js`: a
+mousemove-based `perspective`/`rotateX`/`rotateY` tilt on `.tilt` cards — pure CSS transforms,
+no 3D library, and it no-ops under `prefers-reduced-motion`.
+
 ## Prerequisites
 
 - .NET 8 SDK

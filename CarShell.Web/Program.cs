@@ -185,6 +185,27 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseRouting();
 
+// The admin area (login, MFA, dashboard) must never be served from the
+// browser's back/forward cache: after a real logout, pressing back then
+// forward could otherwise repaint an authenticated page before its own
+// script re-checks anything. no-store is what actually disqualifies a
+// page from bfcache in modern browsers -- the pageshow/persisted reload
+// each of these pages also does is defense in depth on top of this, not
+// the primary fix.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/admin"))
+    {
+        context.Response.OnStarting(() =>
+        {
+            context.Response.Headers.CacheControl = "no-store";
+            return Task.CompletedTask;
+        });
+    }
+
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 

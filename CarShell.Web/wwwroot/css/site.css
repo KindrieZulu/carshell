@@ -319,14 +319,32 @@ textarea { resize: vertical; font-family: var(--font-sans); }
 .brand-menu-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.55rem 0.7rem;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
   border-radius: var(--radius-sm);
   color: var(--color-ink-soft);
   text-decoration: none;
   font-size: 0.9rem;
   transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+}
+.brand-menu-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brand-logo-chip {
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-soft);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.brand-logo-chip img { width: 16px; height: 16px; object-fit: contain; }
+.brand-logo-chip.brand-logo-fallback {
+  background: var(--color-navy-900);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-color: transparent;
 }
 .brand-menu-item:hover { background: var(--color-bg-alt); color: var(--color-ink); }
 .brand-menu-item-all {

@@ -17,7 +17,15 @@
                 @foreach (var brand in Model)
                 {
                     <a href="/?MakeId=@brand.Id" class="brand-menu-item">
-                        <span>@brand.Name</span>
+                        @if (brand.LogoUrl is not null)
+                        {
+                            <span class="brand-logo-chip"><img src="@brand.LogoUrl" alt="" loading="lazy" /></span>
+                        }
+                        else
+                        {
+                            <span class="brand-logo-chip brand-logo-fallback">@brand.Initials</span>
+                        }
+                        <span class="brand-menu-item-name">@brand.Name</span>
                         <span class="brand-menu-count">@brand.ListingCount</span>
                     </a>
                 }

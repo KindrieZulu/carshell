@@ -441,7 +441,7 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   position: relative;
   z-index: 2;
 }
-.search-form label { color: var(--color-ink-muted); }
+.search-form label { color: var(--color-ink-muted); min-width: 0; }
 .search-form .btn { height: 44px; }
 
 .location-status {

@@ -160,6 +160,17 @@ else
     app.UseSwaggerUI();
 }
 
+// A non-exception failure result (NotFound() from a Razor page, e.g. a
+// listing that has been removed or never existed) otherwise reaches the
+// browser as a bare, empty-body 404 -- Kestrel does not render anything
+// for those on its own. Scoped away from /api the same way the exception
+// handler above is: that surface already returns structured JSON via
+// ApiController's built-in ProblemDetails behavior and re-executing it as
+// HTML would break that contract.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api"),
+    htmlApp => htmlApp.UseStatusCodePagesWithReExecute("/Error/{0}"));
+
 app.UseHttpsRedirection();
 
 // Without explicit Cache-Control, some browsers/proxies apply heuristic

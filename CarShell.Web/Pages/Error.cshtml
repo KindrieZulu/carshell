@@ -1,9 +1,15 @@
-@page
+@page "{statusCode:int?}"
 @model CarShell.Web.Pages.ErrorModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = Model.Heading;
 }
-<div class="container">
-    <h1>Something went wrong</h1>
-    <p>Request ID: @Model.RequestId</p>
+<div class="container" style="max-width:560px; padding-top:4.5rem; padding-bottom:5rem; text-align:center;">
+    <p style="font-family:var(--font-display); font-weight:700; font-size:3.5rem; color:var(--color-gold-500); margin:0 0 0.5rem;">@Model.HttpStatusCode</p>
+    <h1>@Model.Heading</h1>
+    <p style="color:var(--color-ink-muted); font-size:1.02rem;">@Model.Message</p>
+    <p style="margin-top:2rem;"><a href="/" class="btn btn-primary">Back to homepage</a></p>
+    @if (!string.IsNullOrEmpty(Model.RequestId))
+    {
+        <p class="location-status" style="margin-top:2.5rem;">Request ID: @Model.RequestId</p>
+    }
 </div>

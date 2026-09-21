@@ -78,7 +78,9 @@ public class IndexModel(CarShellDbContext db) : PageModel
         Results = await query
             .OrderByDescending(l => l.CreatedAt)
             .Take(24)
-            .Select(l => new ListingRow(l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City))
+            .Select(l => new ListingRow(
+                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City,
+                l.Images.OrderBy(i => i.Position).Select(i => i.StorageKey).FirstOrDefault()))
             .ToListAsync(ct);
 
         if (MakeId is not null)
@@ -116,7 +118,8 @@ public class IndexModel(CarShellDbContext db) : PageModel
     }
 
     public record ListingRow(
-        Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City);
+        Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City,
+        string? CoverImageStorageKey);
 
     public record ModelOption(int Id, string Name, int ListingCount);
 }

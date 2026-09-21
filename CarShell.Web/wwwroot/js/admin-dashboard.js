@@ -118,8 +118,11 @@ async function loadListings() {
         const card = document.createElement('a');
         card.className = 'pipeline-card';
         card.href = `/admin/listings/edit?id=${listing.id}`;
+        const thumb = listing.coverImageStorageKey
+            ? `<img src="${window.CARSHELL_CONFIG.storageBaseUrl}/${listing.coverImageStorageKey}" alt="" />`
+            : carIconSvg();
         card.innerHTML = `
-            <div class="pipeline-thumb">${carIconSvg()}</div>
+            <div class="pipeline-thumb">${thumb}</div>
             <div class="pipeline-title">${listing.year} ${listing.make} ${listing.model}</div>
             <div class="pipeline-price">$${listing.price.toLocaleString()}</div>
             <div class="pipeline-meta">

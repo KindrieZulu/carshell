@@ -88,7 +88,8 @@ public class ListingsController(
             .Skip((Math.Max(page, 1) - 1) * PageSize)
             .Take(PageSize)
             .Select(l => new ListingSummary(
-                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City))
+                l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City,
+                l.Images.OrderBy(i => i.Position).Select(i => i.StorageKey).FirstOrDefault()))
             .ToListAsync(ct);
 
         return Ok(results);
@@ -122,7 +123,7 @@ public class ListingsController(
             .OrderByDescending(l => l.CreatedAt)
             .Select(l => new MyListingSummary(
                 l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Status, l.Suburb.Name, l.Suburb.City,
-                l.Mileage, l.BodyType))
+                l.Mileage, l.BodyType, l.Images.OrderBy(i => i.Position).Select(i => i.StorageKey).FirstOrDefault()))
             .ToListAsync(ct);
 
         return Ok(listings);
@@ -495,11 +496,12 @@ public class ListingsController(
 }
 
 public record ListingSummary(
-    Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City);
+    Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City,
+    string? CoverImageStorageKey);
 
 public record MyListingSummary(
     Guid Id, string Make, string Model, int Year, decimal Price, ListingStatus Status, string Suburb, string City,
-    int Mileage, BodyType BodyType);
+    int Mileage, BodyType BodyType, string? CoverImageStorageKey);
 
 public record CreateListingRequest(
     int MakeId,

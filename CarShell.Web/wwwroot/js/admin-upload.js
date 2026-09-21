@@ -75,20 +75,112 @@ async function populateModels(makeId, selectedModelId) {
     }
 }
 
+// The Location field is a searchable combobox rather than a plain <select>
+// -- with 100+ Zimbabwean cities, towns, and suburbs seeded, a native
+// dropdown would be unusably long to scroll through. The visible text
+// input is what the admin types into and what carries the `required`
+// validation; the hidden input alongside it carries the actual suburb id
+// that the rest of the form (readForm, submit) reads.
+let allSuburbs = [];
+
+function suburbLabel(suburb) {
+    return suburb.city === suburb.name ? suburb.city : `${suburb.city} — ${suburb.name}`;
+}
+
+function renderSuburbOptions(filterText) {
+    const panel = document.getElementById('suburb-panel');
+    const query = filterText.trim().toLowerCase();
+    const matches = query
+        ? allSuburbs.filter((suburb) => suburbLabel(suburb).toLowerCase().includes(query))
+        : allSuburbs;
+
+    panel.replaceChildren();
+    if (matches.length === 0) {
+        const empty = document.createElement('li');
+        empty.className = 'combobox-empty';
+        empty.textContent = 'No matching city or suburb.';
+        panel.appendChild(empty);
+    } else {
+        for (const suburb of matches.slice(0, 50)) {
+            const option = document.createElement('li');
+            option.className = 'combobox-option';
+            option.role = 'option';
+            option.dataset.suburbId = suburb.id;
+            option.textContent = suburbLabel(suburb);
+            option.addEventListener('click', () => selectSuburb(suburb));
+            panel.appendChild(option);
+        }
+    }
+    panel.hidden = false;
+    document.getElementById('suburb-search').setAttribute('aria-expanded', 'true');
+}
+
+function selectSuburb(suburb) {
+    document.getElementById('suburb-search').value = suburbLabel(suburb);
+    document.getElementById('suburb-id').value = suburb.id;
+    document.getElementById('suburb-search').setCustomValidity('');
+    closeSuburbPanel();
+}
+
+function closeSuburbPanel() {
+    const panel = document.getElementById('suburb-panel');
+    panel.hidden = true;
+    panel.replaceChildren();
+    document.getElementById('suburb-search').setAttribute('aria-expanded', 'false');
+}
+
 async function populateSuburbs(selectedSuburbId) {
     const response = await fetch('/api/suburbs');
-    const suburbs = await response.json();
-    const select = document.getElementById('suburb-id');
-    select.innerHTML = '';
-    for (const suburb of suburbs) {
-        const option = document.createElement('option');
-        option.textContent = `${suburb.city} — ${suburb.name}`;
-        option.value = suburb.id;
-        select.appendChild(option);
-    }
+    allSuburbs = await response.json();
+
+    const search = document.getElementById('suburb-search');
+    const hiddenId = document.getElementById('suburb-id');
+
     if (selectedSuburbId) {
-        select.value = selectedSuburbId;
+        const selected = allSuburbs.find((suburb) => suburb.id === selectedSuburbId);
+        if (selected) {
+            search.value = suburbLabel(selected);
+            hiddenId.value = selected.id;
+        }
     }
+
+    search.addEventListener('focus', () => renderSuburbOptions(search.value));
+    search.addEventListener('input', () => {
+        // Any manual edit invalidates the previous selection until the
+        // admin picks a fresh match from the list.
+        hiddenId.value = '';
+        search.setCustomValidity('Select a location from the list.');
+        renderSuburbOptions(search.value);
+    });
+    search.addEventListener('keydown', (event) => {
+        const panel = document.getElementById('suburb-panel');
+        const options = Array.from(panel.querySelectorAll('.combobox-option'));
+        if (panel.hidden || options.length === 0) return;
+        const activeIndex = options.findIndex((option) => option.classList.contains('active'));
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const nextIndex = event.key === 'ArrowDown'
+                ? Math.min(activeIndex + 1, options.length - 1)
+                : Math.max(activeIndex - 1, 0);
+            options.forEach((option) => option.classList.remove('active'));
+            options[nextIndex].classList.add('active');
+            options[nextIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter') {
+            if (activeIndex >= 0) {
+                event.preventDefault();
+                const suburb = allSuburbs.find((s) => s.id === Number(options[activeIndex].dataset.suburbId));
+                if (suburb) selectSuburb(suburb);
+            }
+        } else if (event.key === 'Escape') {
+            closeSuburbPanel();
+        }
+    });
+    document.addEventListener('click', (event) => {
+        if (!document.getElementById('suburb-combobox').contains(event.target)) {
+            closeSuburbPanel();
+        }
+    });
 }
 
 document.getElementById('make-id').addEventListener('change', (event) => {

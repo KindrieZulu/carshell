@@ -63,7 +63,13 @@
                 </label>
                 <label>
                     Location
-                    <select id="suburb-id" required></select>
+                    <div class="combobox" id="suburb-combobox">
+                        <input type="text" id="suburb-search" class="combobox-input" autocomplete="off" required
+                               placeholder="Search for a city or suburb&hellip;"
+                               role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="suburb-panel" />
+                        <input type="hidden" id="suburb-id" />
+                        <ul class="combobox-panel" id="suburb-panel" role="listbox" hidden></ul>
+                    </div>
                 </label>
             </div>
         </div>

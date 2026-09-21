@@ -14,11 +14,11 @@
             const x = (event.clientX - rect.left) / rect.width - 0.5;
             const y = (event.clientY - rect.top) / rect.height - 0.5;
             const maxDeg = 6;
-            inner.style.transform = `rotateX(${(-y * maxDeg).toFixed(2)}deg) rotateY(${(x * maxDeg).toFixed(2)}deg) translateZ(0)`;
+            inner.style.transform = `translateY(-8px) rotateX(${(-y * maxDeg).toFixed(2)}deg) rotateY(${(x * maxDeg).toFixed(2)}deg) translateZ(0)`;
         });
 
         el.addEventListener('mouseleave', () => {
-            inner.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0)';
+            inner.style.transform = 'translateY(0) rotateX(0deg) rotateY(0deg) translateZ(0)';
         });
     }
 

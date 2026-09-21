@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - CarShell</title>
     <script src="~/js/theme.js"></script>
-    <script>CarShellTheme.init('carshell-public-theme', 'light');</script>
+    <script>CarShellTheme.init('light');</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -34,7 +34,7 @@
     </footer>
     <script src="~/js/site.js"></script>
     <script>
-        document.getElementById('theme-toggle-btn').addEventListener('click', () => CarShellTheme.toggle('carshell-public-theme'));
+        document.getElementById('theme-toggle-btn').addEventListener('click', () => CarShellTheme.toggle());
     </script>
     @RenderSection("Scripts", required: false)
 </body>

@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - CarShell Admin</title>
     <script src="~/js/theme.js"></script>
-    <script>CarShellTheme.init('carshell-admin-theme', 'dark');</script>
+    <script>CarShellTheme.init('light');</script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap" rel="stylesheet" />
@@ -34,9 +34,9 @@
         </aside>
         <div class="admin-content">
             <header class="apex-topbar">
-                <div class="apex-topbar-tabs">
-                    <a href="/" class="apex-tab" target="_blank" rel="noopener">Public Inventory</a>
-                </div>
+                <a href="/" class="home-btn" id="home-btn" title="Go to public site" aria-label="Go to public site">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+                </a>
                 <span class="apex-status-pill"><span class="dot"></span> Live</span>
                 <button type="button" class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle light/dark theme" aria-label="Toggle light or dark theme">
                     <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -46,6 +46,7 @@
                     <button type="button" class="apex-avatar-btn" id="avatar-btn" aria-haspopup="true" aria-expanded="false">&nbsp;</button>
                     <div class="apex-avatar-dropdown" id="avatar-dropdown" hidden>
                         <div class="email" id="avatar-email">Signed in</div>
+                        <a href="/admin/settings">Settings</a>
                         <button type="button" id="logout-btn">Log out</button>
                     </div>
                 </div>
@@ -75,6 +76,30 @@
             avatarEmail.textContent = identity.email;
         }
 
+        // The initial letter above is an instant, no-fetch placeholder;
+        // this fills in the real display name and photo (if any) once
+        // /api/settings/me answers. Exposed so the settings page itself
+        // can ask this same topbar to refresh right after an avatar
+        // upload, instead of the user needing a full reload to see it.
+        async function refreshTopbarAvatar() {
+            try {
+                const response = await CarShellAdmin.apiFetch('/api/settings/me');
+                if (!response.ok) return;
+                const settings = await response.json();
+                const label = settings.username || settings.email;
+                if (settings.profilePictureStorageKey) {
+                    avatarBtn.innerHTML = `<img src="${window.CARSHELL_CONFIG.storageBaseUrl}/${settings.profilePictureStorageKey}" alt="" />`;
+                } else {
+                    avatarBtn.textContent = label.charAt(0).toUpperCase();
+                }
+                avatarEmail.textContent = label;
+            } catch {
+                // The placeholder above stays put.
+            }
+        }
+        window.CarShellTopbarAvatar = { refresh: refreshTopbarAvatar };
+        refreshTopbarAvatar();
+
         const avatarDropdown = document.getElementById('avatar-dropdown');
         avatarBtn.addEventListener('click', () => {
             const expanded = avatarBtn.getAttribute('aria-expanded') === 'true';
@@ -90,7 +115,19 @@
 
         document.getElementById('logout-btn').addEventListener('click', () => CarShellAdmin.logout());
 
-        document.getElementById('theme-toggle-btn').addEventListener('click', () => CarShellTheme.toggle('carshell-admin-theme'));
+        document.getElementById('theme-toggle-btn').addEventListener('click', () => CarShellTheme.toggle());
+
+        // Leaving the admin area through this button ends the session --
+        // clearing the token here (rather than only on the explicit Log
+        // out button) means the no-store/pageshow guards above actually
+        // bite: back or forward into any admin page re-runs requireAuth()
+        // against a token that is already gone, landing back on the login
+        // screen instead of silently reopening the dashboard.
+        document.getElementById('home-btn').addEventListener('click', (event) => {
+            event.preventDefault();
+            CarShellAdmin.clearToken();
+            window.location.href = '/';
+        });
 
         // A page restored from the browser back/forward cache keeps
         // whatever it last rendered, without re-running requireAuth() --

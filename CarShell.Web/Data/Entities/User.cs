@@ -26,6 +26,12 @@ public class User
     public string? ContactPhone { get; set; }
     public string? ContactEmail { get; set; }
 
+    // The admin's own uploaded avatar, shown in the admin topbar. Same
+    // storage-key pattern as ListingImage: a Supabase Storage object key,
+    // not a full URL, so the client builds the URL the same way it already
+    // does for listing photos.
+    public string? ProfilePictureStorageKey { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();

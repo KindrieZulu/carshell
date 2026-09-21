@@ -1,0 +1,61 @@
+@page "/admin/settings"
+@{
+    ViewData["Title"] = "Account Settings";
+    Layout = "/Pages/Admin/_AdminLayout.cshtml";
+}
+
+<div class="admin-topbar">
+    <div>
+        <h1>Account Settings</h1>
+        <p>Your profile photo, display name, and the contact details buyers see on your listings.</p>
+    </div>
+</div>
+
+<div style="max-width:640px;">
+    <div class="form-card">
+        <h2>Profile Photo</h2>
+        <div style="display:flex; align-items:center; gap:1.25rem; flex-wrap:wrap;">
+            <div id="avatar-preview" class="settings-avatar-preview">--</div>
+            <div style="flex:1; min-width:220px;">
+                <div class="upload-row">
+                    <input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" />
+                    <button type="button" id="avatar-upload-btn" class="btn btn-ghost btn-sm">Upload photo</button>
+                </div>
+                <p class="location-status" style="margin:0.6rem 0 0;">JPEG, PNG, or WEBP, up to 5MB.</p>
+                <p id="avatar-error" class="error" hidden style="margin-top:0.75rem;"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-card">
+        <h2>Profile Details</h2>
+        <form id="settings-form">
+            <div class="form-grid">
+                <label>
+                    Username
+                    <input type="text" id="username" placeholder="Optional" />
+                </label>
+                <label>
+                    Sign-in email
+                    <input type="text" id="login-email" disabled />
+                </label>
+                <label>
+                    Contact email
+                    <input type="email" id="contact-email" placeholder="Shown to buyers on your listings" />
+                </label>
+                <label>
+                    Contact phone
+                    <input type="tel" id="contact-phone" placeholder="Shown to buyers on your listings" />
+                </label>
+            </div>
+            <p class="location-status" style="margin:0.85rem 0 0;">Sign-in email cannot be changed here — contact a super admin if it needs to change.</p>
+            <button type="submit" class="btn btn-primary" style="margin-top:1.25rem;">Save changes</button>
+            <p id="form-error" class="error" hidden style="margin-top:0.85rem;"></p>
+            <p id="form-success" class="success" hidden style="margin-top:0.85rem;"></p>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin-settings.js"></script>
+}

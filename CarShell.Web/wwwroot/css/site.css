@@ -68,6 +68,7 @@
   --topbar-bg: rgba(255, 255, 255, 0.72);
   --thumb-gradient-end: #E3E7F2;
   --table-row-hover: #FAFBFD;
+  --color-card-bg: #FDFCFA;
   --shadow-gold-hover: 0 14px 28px -6px rgba(0, 217, 228, 0.5);
 }
 
@@ -215,6 +216,7 @@ textarea { resize: vertical; font-family: var(--font-sans); }
 }
 .tilt:hover .tilt-inner {
   box-shadow: var(--shadow-lg);
+  transform: translateY(-6px);
 }
 
 .card {
@@ -474,15 +476,13 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   display: block;
   text-decoration: none;
   color: inherit;
-  overflow: hidden;
   height: 100%;
 }
 .listing-card .tilt-inner {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
+  background: var(--color-card-bg);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-lg);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -858,6 +858,7 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   --topbar-bg: rgba(10, 10, 15, 0.75);
   --thumb-gradient-end: #20222E;
   --table-row-hover: rgba(255, 255, 255, 0.04);
+  --color-card-bg: var(--color-surface);
 }
 
 .admin-shell { background: var(--color-bg); }
@@ -908,17 +909,6 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   z-index: 30;
 }
 .admin-content { display: flex; flex-direction: column; min-width: 0; }
-.apex-topbar-tabs { display: flex; gap: 0.4rem; }
-.apex-tab {
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-full);
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-ink-muted);
-  text-decoration: none;
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
-}
-.apex-tab:hover { color: var(--color-ink); background: var(--overlay-mid); }
 .apex-status-pill {
   margin-left: auto;
   display: inline-flex;
@@ -954,7 +944,10 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow-gold);
+  overflow: hidden;
+  padding: 0;
 }
+.apex-avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
 .apex-avatar-dropdown {
   position: absolute;
   right: 0;
@@ -975,20 +968,25 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   margin-bottom: 0.5rem;
   word-break: break-all;
 }
-.apex-avatar-dropdown button {
+.apex-avatar-dropdown button,
+.apex-avatar-dropdown a {
+  display: block;
   width: 100%;
   text-align: left;
   background: none;
   border: none;
   color: var(--color-ink-soft);
+  text-decoration: none;
   font-family: var(--font-sans);
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.55rem 0.5rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  box-sizing: border-box;
 }
-.apex-avatar-dropdown button:hover { background: var(--overlay-mid); color: var(--color-ink); }
+.apex-avatar-dropdown button:hover,
+.apex-avatar-dropdown a:hover { background: var(--overlay-mid); color: var(--color-ink); }
 
 /* ---------- Panels and layout helpers ---------- */
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.1rem; flex-wrap: wrap; }
@@ -1126,13 +1124,13 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
 
 @media (max-width: 980px) {
   .apex-topbar { padding: 0.85rem 1.25rem; }
-  .apex-topbar-tabs { display: none; }
   .panel-row-2 { grid-template-columns: 1fr; }
   .stepper-label { display: none; }
 }
 
 /* ---------- Light/dark theme toggle button ---------- */
-.theme-toggle-btn {
+.theme-toggle-btn,
+.home-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1144,12 +1142,30 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
   color: var(--color-ink-soft);
   cursor: pointer;
   flex-shrink: 0;
+  text-decoration: none;
   transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
 }
-.theme-toggle-btn:hover { background: var(--overlay-mid); color: var(--color-ink); }
-.theme-toggle-btn svg { width: 18px; height: 18px; }
+.theme-toggle-btn:hover,
+.home-btn:hover { background: var(--overlay-mid); color: var(--color-ink); }
+.theme-toggle-btn svg,
+.home-btn svg { width: 18px; height: 18px; }
 .theme-toggle-btn .icon-moon { display: none; }
 [data-theme="dark"] .theme-toggle-btn .icon-sun { display: none; }
 [data-theme="dark"] .theme-toggle-btn .icon-moon { display: block; }
 
 .site-header .theme-toggle-btn { margin-left: 1.25rem; }
+
+/* ---------- Account settings avatar preview ---------- */
+.settings-avatar-preview {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-gold-400), var(--color-gold-500));
+  color: #04050A;
+  font-weight: 700;
+  font-size: 1.5rem;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-gold);
+}
+.settings-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }

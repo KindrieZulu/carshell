@@ -37,6 +37,27 @@ document.getElementById('step-back-btn').addEventListener('click', () => goToSte
 document.getElementById('step-next-btn').addEventListener('click', () => goToStep(currentStep + 1));
 updateStepUI();
 
+// The stepper lets you jump straight to step 4 and skip required fields in
+// earlier steps entirely. Those fields sit in a `hidden` (display:none)
+// panel, which -- despite the HTML spec's intent -- Chrome still runs
+// constraint validation against: submitting silently does nothing, with no
+// visible error, because the browser can't show a tooltip on a field that
+// isn't rendered. Jumping to the invalid field's own step as soon as
+// validation reports it makes that tooltip appear on a visible field
+// instead of failing silently. Only the first invalid field per submit
+// attempt matters, since that's the one the browser focuses.
+let invalidFieldHandled = false;
+document.getElementById('listing-form').addEventListener('invalid', (event) => {
+    if (invalidFieldHandled) return;
+    invalidFieldHandled = true;
+    setTimeout(() => { invalidFieldHandled = false; }, 0);
+
+    const panel = event.target.closest('.step-panel');
+    if (panel) {
+        goToStep(Number(panel.dataset.stepPanel));
+    }
+}, true);
+
 function setError(elementId, message) {
     const el = document.getElementById(elementId);
     el.textContent = message;
@@ -188,7 +209,9 @@ document.getElementById('make-id').addEventListener('change', (event) => {
 });
 
 document.getElementById('status').addEventListener('change', (event) => {
-    document.getElementById('sale-price-label').hidden = event.target.value !== 'Sold';
+    const isSold = event.target.value === 'Sold';
+    document.getElementById('sale-price-label').hidden = !isSold;
+    document.getElementById('sale-price').required = isSold;
 });
 
 async function loadImages() {
@@ -236,7 +259,9 @@ async function loadExistingListing() {
     document.getElementById('body-type').value = listing.bodyType;
     document.getElementById('description').value = listing.description || '';
     document.getElementById('status').value = listing.status;
-    document.getElementById('sale-price-label').hidden = listing.status !== 'Sold';
+    const isSold = listing.status === 'Sold';
+    document.getElementById('sale-price-label').hidden = !isSold;
+    document.getElementById('sale-price').required = isSold;
     currentVersion = listing.version;
 
     await loadImages();
@@ -270,9 +295,10 @@ document.getElementById('listing-form').addEventListener('submit', async (event)
     if (isEditMode) {
         body.version = currentVersion;
         const statusValue = document.getElementById('status').value;
+        const salePriceRaw = document.getElementById('sale-price').value;
         body.status = statusValue;
-        body.salePrice = statusValue === 'Sold'
-            ? Number(document.getElementById('sale-price').value)
+        body.salePrice = statusValue === 'Sold' && salePriceRaw !== ''
+            ? Number(salePriceRaw)
             : null;
     }
 

@@ -16,23 +16,38 @@
 
 <div class="container">
     <form method="get" class="search-form" id="search-form">
-        <label>
-            Min price ($)
-            <input type="number" name="MinPrice" value="@Model.MinPrice" placeholder="0" />
-        </label>
-        <label>
-            Max price ($)
-            <input type="number" name="MaxPrice" value="@Model.MaxPrice" placeholder="Any" />
-        </label>
-        <label>
-            Radius (km)
-            <input type="number" name="RadiusKm" id="radius-km" value="@Model.RadiusKm" placeholder="50" />
-        </label>
+        <div class="filter-dropdown">
+            <input type="hidden" name="MakeId" id="make-id-input" value="@Model.MakeId" />
+            <button type="button" class="filter-dropdown-toggle" data-filter-toggle="brand-panel">
+                <span>@Model.BrandFilterLabel</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="filter-dropdown-panel brand-panel" id="brand-panel" hidden>
+                <div class="brand-option-grid">
+                    <button type="button" class="brand-option brand-option-all" data-make-id="">All brands</button>
+                    @foreach (var makeOption in Model.Makes)
+                    {
+                        <button type="button" class="brand-option" data-make-id="@makeOption.Id">
+                            @if (makeOption.LogoUrl is not null)
+                            {
+                                <span class="brand-logo-chip"><img src="@makeOption.LogoUrl" alt="" loading="lazy" /></span>
+                            }
+                            else
+                            {
+                                <span class="brand-logo-chip brand-logo-fallback">@makeOption.Initials</span>
+                            }
+                            <span class="brand-option-name">@makeOption.Name</span>
+                            <span class="brand-option-count">@makeOption.ListingCount</span>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
         @if (Model.MakeId is not null && Model.AvailableModels.Count > 0)
         {
             <label>
                 Model
-                <select name="ModelId" onchange="this.form.submit()">
+                <select name="ModelId" id="model-select" onchange="this.form.submit()">
                     <option value="">All @Model.SelectedMakeName models</option>
                     @foreach (var modelOption in Model.AvailableModels)
                     {
@@ -41,19 +56,48 @@
                 </select>
             </label>
         }
-        else
-        {
-            <label>
-                &nbsp;
-            </label>
-        }
-        <input type="hidden" name="Lat" id="search-lat" value="@Model.Lat" />
-        <input type="hidden" name="Lng" id="search-lng" value="@Model.Lng" />
-        <input type="hidden" name="MakeId" value="@Model.MakeId" />
+
+        <div class="filter-dropdown">
+            <button type="button" class="filter-dropdown-toggle" data-filter-toggle="price-panel">
+                <span>@Model.PriceFilterLabel</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="filter-dropdown-panel" id="price-panel" hidden>
+                <label>
+                    Min price ($)
+                    <input type="number" name="MinPrice" value="@Model.MinPrice" placeholder="0" />
+                </label>
+                <label>
+                    Max price ($)
+                    <input type="number" name="MaxPrice" value="@Model.MaxPrice" placeholder="Any" />
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm btn-block">Apply</button>
+            </div>
+        </div>
+
+        <div class="filter-dropdown">
+            <button type="button" class="filter-dropdown-toggle" data-filter-toggle="mileage-panel">
+                <span>@Model.MileageFilterLabel</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="filter-dropdown-panel" id="mileage-panel" hidden>
+                <label>
+                    Under (km)
+                    <input type="number" name="MaxMileage" value="@Model.MaxMileage" placeholder="e.g. 100000" min="0" />
+                </label>
+                <button type="submit" class="btn btn-primary btn-sm btn-block">Apply</button>
+            </div>
+        </div>
+
+        <div class="combobox" id="location-combobox">
+            <input type="text" name="City" id="location-search" class="combobox-input" autocomplete="off"
+                   placeholder="Location" value="@Model.City" aria-label="Location"
+                   role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="location-panel" />
+            <ul class="combobox-panel" id="location-panel" role="listbox" hidden></ul>
+        </div>
+
         <button type="submit" class="btn btn-primary">Search</button>
     </form>
-
-    <p id="location-status" class="location-status"></p>
 
     <div class="results-heading">
         <h2>@Model.Results.Count @(Model.Results.Count == 1 ? "car" : "cars") found</h2>
@@ -122,37 +166,159 @@
 
 @section Scripts {
     <script>
-        // "Buyers see cars near them by default": on first visit (no
-        // location already in the URL), ask the browser for the user's
-        // position and re-run the search centred on it. If permission is
-        // denied or unavailable, the page just falls back to the unfiltered
-        // newest-first list already rendered above.
+        // Brand dropdown: a custom panel of logo chips rather than a native
+        // <select>, since <option> elements can't render images. Clicking an
+        // entry sets the hidden MakeId field and submits; switching brand
+        // also invalidates whatever model was previously picked (a model
+        // without its make makes no sense), so that's cleared too rather
+        // than round-tripping a stale ModelId.
+        document.querySelectorAll('.brand-option').forEach(function (option) {
+            option.addEventListener('click', function () {
+                var hiddenMakeId = document.getElementById('make-id-input');
+                hiddenMakeId.value = option.dataset.makeId;
+                var modelSelect = document.getElementById('model-select');
+                if (modelSelect) {
+                    modelSelect.value = '';
+                }
+                hiddenMakeId.closest('form').submit();
+            });
+        });
+
+        // Price / Mileage filter dropdowns: a plain toggle button + panel,
+        // same pattern as the old header brand menu. Only one panel open at
+        // a time; closes on outside click or Escape.
         (function () {
-            var params = new URLSearchParams(window.location.search);
-            if (params.has('Lat') && params.get('Lat')) {
-                return;
-            }
-            if (!('geolocation' in navigator)) {
-                return;
-            }
+            var toggles = document.querySelectorAll('[data-filter-toggle]');
 
-            var status = document.getElementById('location-status');
-            status.textContent = 'Finding cars near you…';
-
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    params.set('Lat', position.coords.latitude);
-                    params.set('Lng', position.coords.longitude);
-                    if (!params.get('RadiusKm')) {
-                        params.set('RadiusKm', '50');
+            function closeAll(except) {
+                toggles.forEach(function (toggle) {
+                    var panel = document.getElementById(toggle.dataset.filterToggle);
+                    if (panel && panel !== except) {
+                        panel.hidden = true;
+                        toggle.setAttribute('aria-expanded', 'false');
                     }
-                    window.location.search = params.toString();
-                },
-                function () {
-                    status.textContent = '';
-                },
-                { timeout: 8000 }
-            );
+                });
+            }
+
+            toggles.forEach(function (toggle) {
+                var panel = document.getElementById(toggle.dataset.filterToggle);
+                if (!panel) return;
+
+                toggle.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    var willOpen = panel.hidden;
+                    closeAll(willOpen ? panel : null);
+                    panel.hidden = !willOpen;
+                    toggle.setAttribute('aria-expanded', String(willOpen));
+                });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!event.target.closest('.filter-dropdown')) {
+                    closeAll(null);
+                }
+            });
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeAll(null);
+                }
+            });
+        })();
+
+        // Location field: a searchable combobox over /api/suburbs/cities --
+        // every city and town in Zimbabwe, not the individual suburbs within
+        // them. The typed value doubles as the filter value, so there's no
+        // separate hidden id field to keep in sync.
+        (function () {
+            var search = document.getElementById('location-search');
+            var panel = document.getElementById('location-panel');
+            var combobox = document.getElementById('location-combobox');
+            if (!search || !panel || !combobox) return;
+
+            var allCities = [];
+
+            function closePanel() {
+                panel.hidden = true;
+                panel.replaceChildren();
+                search.setAttribute('aria-expanded', 'false');
+            }
+
+            function selectCity(city) {
+                search.value = city;
+                closePanel();
+            }
+
+            function renderOptions(filterText) {
+                var query = filterText.trim().toLowerCase();
+                var matches = query
+                    ? allCities.filter(function (c) { return c.toLowerCase().includes(query); })
+                    : allCities;
+
+                panel.replaceChildren();
+
+                var anyOption = document.createElement('li');
+                anyOption.className = 'combobox-option';
+                anyOption.setAttribute('role', 'option');
+                anyOption.textContent = 'Any location';
+                anyOption.addEventListener('click', function () { selectCity(''); });
+                panel.appendChild(anyOption);
+
+                if (matches.length === 0) {
+                    var empty = document.createElement('li');
+                    empty.className = 'combobox-empty';
+                    empty.textContent = 'No matching city or town.';
+                    panel.appendChild(empty);
+                } else {
+                    matches.slice(0, 50).forEach(function (city) {
+                        var option = document.createElement('li');
+                        option.className = 'combobox-option';
+                        option.setAttribute('role', 'option');
+                        option.dataset.city = city;
+                        option.textContent = city;
+                        option.addEventListener('click', function () { selectCity(city); });
+                        panel.appendChild(option);
+                    });
+                }
+
+                panel.hidden = false;
+                search.setAttribute('aria-expanded', 'true');
+            }
+
+            fetch('/api/suburbs/cities')
+                .then(function (response) { return response.json(); })
+                .then(function (cities) { allCities = cities; });
+
+            search.addEventListener('focus', function () { renderOptions(search.value); });
+            search.addEventListener('input', function () { renderOptions(search.value); });
+            search.addEventListener('keydown', function (event) {
+                var options = Array.from(panel.querySelectorAll('.combobox-option'));
+                if (panel.hidden || options.length === 0) return;
+                var activeIndex = options.findIndex(function (o) { return o.classList.contains('active'); });
+
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    var nextIndex = event.key === 'ArrowDown'
+                        ? Math.min(activeIndex + 1, options.length - 1)
+                        : Math.max(activeIndex - 1, 0);
+                    options.forEach(function (o) { o.classList.remove('active'); });
+                    options[nextIndex].classList.add('active');
+                    options[nextIndex].scrollIntoView({ block: 'nearest' });
+                } else if (event.key === 'Enter') {
+                    if (activeIndex >= 0) {
+                        event.preventDefault();
+                        selectCity(options[activeIndex].dataset.city);
+                    }
+                } else if (event.key === 'Escape') {
+                    closePanel();
+                }
+            });
+
+            document.addEventListener('click', function (event) {
+                if (!combobox.contains(event.target)) {
+                    closePanel();
+                }
+            });
         })();
     </script>
 }

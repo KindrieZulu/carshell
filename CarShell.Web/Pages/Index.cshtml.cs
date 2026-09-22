@@ -3,7 +3,6 @@ using CarShell.Web.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using NetTopologySuite.Geometries;
 
 namespace CarShell.Web.Pages;
 
@@ -12,27 +11,28 @@ namespace CarShell.Web.Pages;
 // the public pages, so listings stay indexable by search engines.
 public class IndexModel(CarShellDbContext db) : PageModel
 {
-    private static readonly GeometryFactory GeometryFactory =
-        NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
-
     [BindProperty(SupportsGet = true)]
     public decimal? MinPrice { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public decimal? MaxPrice { get; set; }
 
+    // "Under X km" -- the mileage filter dropdown only takes a ceiling, not
+    // a range, since buyers think of mileage as "under this much" rather
+    // than a min/max band.
     [BindProperty(SupportsGet = true)]
-    public double? Lat { get; set; }
+    public int? MaxMileage { get; set; }
 
+    // Filters by city/town, picked from the searchable location combobox --
+    // no geolocation permission prompt, no radius math, just "listings in
+    // this city". Deliberately city-level rather than a specific suburb:
+    // the combobox lists all of Zimbabwe's cities and towns, not the
+    // individual neighborhoods within them.
     [BindProperty(SupportsGet = true)]
-    public double? Lng { get; set; }
+    public string? City { get; set; }
 
-    [BindProperty(SupportsGet = true)]
-    public double? RadiusKm { get; set; }
-
-    // Set from the header's "Browse by Brand" menu (BrandMenuViewComponent) --
-    // a plain link to /?MakeId=X, not a form field, so it round-trips through
-    // an ordinary GET like every other filter here.
+    // Now a visible dropdown inside the filter box itself (it used to live
+    // in the header's separate "Browse by Brand" menu).
     [BindProperty(SupportsGet = true)]
     public int? MakeId { get; set; }
 
@@ -46,13 +46,32 @@ public class IndexModel(CarShellDbContext db) : PageModel
     public string? SelectedMakeName { get; private set; }
     public string? SelectedModelName { get; private set; }
 
+    // Labels for the Price / Mileage dropdown toggle buttons, so the button
+    // itself shows the active filter instead of a static "Price"/"Mileage"
+    // once one is applied.
+    public string PriceFilterLabel => (MinPrice, MaxPrice) switch
+    {
+        (null, null) => "Price",
+        (not null, not null) => $"${MinPrice:N0} – ${MaxPrice:N0}",
+        (not null, null) => $"${MinPrice:N0}+",
+        (null, not null) => $"Under ${MaxPrice:N0}",
+    };
+
+    public string MileageFilterLabel => MaxMileage is null ? "Mileage" : $"Under {MaxMileage:N0} km";
+
+    public string BrandFilterLabel => SelectedMakeName ?? "Car Brand";
+
+    // Every make in the catalog, with a live count of its Active listings --
+    // populates the Brand dropdown in the filter box.
+    public List<MakeOption> Makes { get; private set; } = [];
+
     // The models of the selected make that actually have an Active listing --
     // populates the Model dropdown, which only appears once a brand is picked.
     public List<ModelOption> AvailableModels { get; private set; } = [];
 
     // Used by the "clear brand filter" chip: drops both MakeId and ModelId
     // (a model without its make makes no sense) while keeping every other
-    // filter (price, radius, location) already applied.
+    // filter (price, mileage, location) already applied.
     public string ClearMakeUrl { get; private set; } = "/";
 
     // Used by the "clear model filter" chip: drops only ModelId, keeping the
@@ -65,15 +84,10 @@ public class IndexModel(CarShellDbContext db) : PageModel
 
         if (MinPrice is not null) query = query.Where(l => l.Price >= MinPrice);
         if (MaxPrice is not null) query = query.Where(l => l.Price <= MaxPrice);
+        if (MaxMileage is not null) query = query.Where(l => l.Mileage <= MaxMileage);
         if (MakeId is not null) query = query.Where(l => l.MakeId == MakeId);
         if (ModelId is not null) query = query.Where(l => l.ModelId == ModelId);
-
-        if (Lat is not null && Lng is not null && RadiusKm is not null)
-        {
-            var origin = GeometryFactory.CreatePoint(new Coordinate(Lng.Value, Lat.Value));
-            var radiusMeters = RadiusKm.Value * 1000;
-            query = query.Where(l => l.Location.IsWithinDistance(origin, radiusMeters));
-        }
+        if (!string.IsNullOrWhiteSpace(City)) query = query.Where(l => l.Suburb.City == City);
 
         Results = await query
             .OrderByDescending(l => l.CreatedAt)
@@ -82,6 +96,20 @@ public class IndexModel(CarShellDbContext db) : PageModel
                 l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Mileage, l.Suburb.Name, l.Suburb.City,
                 l.Images.OrderBy(i => i.Position).Select(i => i.StorageKey).FirstOrDefault()))
             .ToListAsync(ct);
+
+        var activeCountsByMakeId = await db.Listings.AsNoTracking()
+            .Where(l => l.Status == ListingStatus.Active)
+            .GroupBy(l => l.MakeId)
+            .Select(g => new { MakeId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.MakeId, g => g.Count, ct);
+
+        var makes = await db.Makes.AsNoTracking()
+            .OrderBy(m => m.Name)
+            .Select(m => new { m.Id, m.Name })
+            .ToListAsync(ct);
+        Makes = makes.Select(m => new MakeOption(
+            m.Id, m.Name, activeCountsByMakeId.GetValueOrDefault(m.Id),
+            VehicleBrandLogos.GetLogoUrl(m.Name), VehicleBrandLogos.GetInitials(m.Name))).ToList();
 
         if (MakeId is not null)
         {
@@ -122,4 +150,6 @@ public class IndexModel(CarShellDbContext db) : PageModel
         string? CoverImageStorageKey);
 
     public record ModelOption(int Id, string Name, int ListingCount);
+
+    public record MakeOption(int Id, string Name, int ListingCount, string? LogoUrl, string Initials);
 }

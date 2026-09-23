@@ -52,6 +52,7 @@ public class CarShellDbContext(DbContextOptions<CarShellDbContext> options) : Db
             e.Property(l => l.EngineCapacityLitres).HasColumnType("decimal(3,1)");
             e.Property(l => l.Price).HasColumnType("decimal(10,2)");
             e.Property(l => l.Vin).HasMaxLength(17);
+            e.Property(l => l.RegistrationNumber).HasMaxLength(20);
             e.Property(l => l.Location).HasColumnType("geography (point)");
             e.Property(l => l.Version).IsRowVersion();
 

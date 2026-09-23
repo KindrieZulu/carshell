@@ -191,6 +191,7 @@ public class ListingsController(
             BodyType = request.BodyType,
             Description = request.Description,
             Vin = vin,
+            RegistrationNumber = string.IsNullOrWhiteSpace(request.RegistrationNumber) ? null : request.RegistrationNumber.Trim(),
             Status = ListingStatus.Active,
             SuburbId = suburb.Id,
             Lat = suburb.Lat,
@@ -288,6 +289,10 @@ public class ListingsController(
         if (request.Transmission is not null) listing.Transmission = request.Transmission.Value;
         if (request.BodyType is not null) listing.BodyType = request.BodyType.Value;
         if (request.Description is not null) listing.Description = request.Description;
+        if (request.RegistrationNumber is not null)
+        {
+            listing.RegistrationNumber = string.IsNullOrWhiteSpace(request.RegistrationNumber) ? null : request.RegistrationNumber.Trim();
+        }
 
         if (request.Status is not null && request.Status.Value != listing.Status)
         {
@@ -491,6 +496,7 @@ public class ListingsController(
         listing.BodyType,
         listing.Description,
         listing.Vin,
+        listing.RegistrationNumber,
         listing.Status,
         listing.SuburbId,
         listing.Suburb?.Name,
@@ -524,6 +530,7 @@ public record CreateListingRequest(
     BodyType BodyType,
     string? Description,
     string? Vin,
+    string? RegistrationNumber,
     int SuburbId);
 
 public record UpdateListingRequest(
@@ -538,6 +545,7 @@ public record UpdateListingRequest(
     TransmissionType? Transmission,
     BodyType? BodyType,
     string? Description,
+    string? RegistrationNumber,
     int? SuburbId,
     ListingStatus? Status,
     decimal? SalePrice,
@@ -566,6 +574,7 @@ public record ListingDetail(
     BodyType BodyType,
     string? Description,
     string? Vin,
+    string? RegistrationNumber,
     ListingStatus Status,
     int SuburbId,
     string? SuburbName,

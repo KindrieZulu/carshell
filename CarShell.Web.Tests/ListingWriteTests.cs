@@ -84,6 +84,7 @@ public class ListingWriteTests : IAsyncLifetime
         BodyType: BodyType.Hatchback,
         Description: "A test listing.",
         Vin: vin,
+        RegistrationNumber: null,
         SuburbId: suburbId ?? _suburbId);
 
     [Fact]
@@ -149,7 +150,7 @@ public class ListingWriteTests : IAsyncLifetime
 
         var result = await controller.Update(
             listing.Id,
-            new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null,
+            new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null, null,
                 ListingStatus.Sold, null, listing.Version),
             default);
 
@@ -165,7 +166,7 @@ public class ListingWriteTests : IAsyncLifetime
 
         var result = await controller.Update(
             listing.Id,
-            new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null,
+            new UpdateListingRequest(null, null, null, null, null, null, null, null, null, null, null, null, null,
                 ListingStatus.Sold, 11500m, listing.Version),
             default);
 
@@ -257,7 +258,7 @@ public class ListingWriteTests : IAsyncLifetime
         var firstEdit = await controller.Update(
             listing.Id,
             new UpdateListingRequest(null, null, "First edit", null, null, null, null, null, null, null, null,
-                null, null, null, listing.Version),
+                null, null, null, null, listing.Version),
             default);
         Assert.IsType<OkObjectResult>(firstEdit);
 
@@ -266,7 +267,7 @@ public class ListingWriteTests : IAsyncLifetime
         var staleEdit = await controller.Update(
             listing.Id,
             new UpdateListingRequest(null, null, "Stale edit", null, null, null, null, null, null, null, null,
-                null, null, null, listing.Version),
+                null, null, null, null, listing.Version),
             default);
 
         Assert.IsType<ConflictObjectResult>(staleEdit);

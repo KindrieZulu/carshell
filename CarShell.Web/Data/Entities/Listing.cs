@@ -34,6 +34,11 @@ public class Listing
     // application layer when it is provided -- see ListingsController.
     public string? Vin { get; set; }
 
+    // The vehicle's number plate. Optional and free-text -- unlike the VIN,
+    // Zimbabwean registration formats vary too much to usefully validate,
+    // and it isn't de-duplicated (a plate can be re-issued/transferred).
+    public string? RegistrationNumber { get; set; }
+
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
 
     public int SuburbId { get; set; }

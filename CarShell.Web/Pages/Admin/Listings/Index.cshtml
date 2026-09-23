@@ -10,7 +10,6 @@
         <h1>Admin Dashboard</h1>
         <p>Portfolio health, team access, and inventory pipeline at a glance.</p>
     </div>
-    <a href="/admin/listings/edit" class="btn btn-primary">+ New listing</a>
 </div>
 
 <div class="stat-grid" id="stat-grid" hidden>
@@ -62,7 +61,6 @@
         </thead>
         <tbody id="governance-body"></tbody>
     </table>
-    <p id="governance-restricted" class="location-status" hidden style="padding:1.25rem 0.25rem 0;">Only a super admin can view team access. Ask one to grant you access.</p>
 </div>
 
 <div class="table-card" style="padding:1.5rem; margin-bottom:2rem;">
@@ -94,16 +92,6 @@
             <h2>Fleet Operations Dock</h2>
         </div>
         <div class="ops-dock">
-            <a href="/admin/listings/edit" class="ops-dock-item">
-                <span class="ops-dock-icon stat-icon-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg></span>
-                <span class="label">Upload a new vehicle</span>
-                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
-            </a>
-            <a href="/admin/admins" class="ops-dock-item">
-                <span class="ops-dock-icon stat-icon-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
-                <span class="label">Manage admin access</span>
-                <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
-            </a>
             <a href="/" target="_blank" rel="noopener" class="ops-dock-item">
                 <span class="ops-dock-icon stat-icon-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10h14V10"/></svg></span>
                 <span class="label">View public inventory</span>

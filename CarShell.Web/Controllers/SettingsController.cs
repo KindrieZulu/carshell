@@ -37,7 +37,8 @@ public class SettingsController(CarShellDbContext db, ISupabaseStorageService st
         }
 
         return Ok(new SettingsResponse(
-            user.Email, user.Username, user.ContactEmail, user.ContactPhone, user.ProfilePictureStorageKey));
+            user.Email, user.Username, user.ContactEmail, user.ContactPhone, user.ProfilePictureStorageKey,
+            user.IsSuperAdmin));
     }
 
     [HttpPatch]
@@ -73,7 +74,8 @@ public class SettingsController(CarShellDbContext db, ISupabaseStorageService st
         await db.SaveChangesAsync(ct);
 
         return Ok(new SettingsResponse(
-            user.Email, user.Username, user.ContactEmail, user.ContactPhone, user.ProfilePictureStorageKey));
+            user.Email, user.Username, user.ContactEmail, user.ContactPhone, user.ProfilePictureStorageKey,
+            user.IsSuperAdmin));
     }
 
     [HttpPost("avatar/upload-url")]
@@ -128,7 +130,8 @@ public class SettingsController(CarShellDbContext db, ISupabaseStorageService st
 }
 
 public record SettingsResponse(
-    string Email, string? Username, string? ContactEmail, string? ContactPhone, string? ProfilePictureStorageKey);
+    string Email, string? Username, string? ContactEmail, string? ContactPhone, string? ProfilePictureStorageKey,
+    bool IsSuperAdmin);
 
 public record UpdateSettingsRequest(string? Username, string? ContactEmail, string? ContactPhone);
 

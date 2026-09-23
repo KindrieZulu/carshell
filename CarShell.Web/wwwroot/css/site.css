@@ -183,6 +183,23 @@ input:focus, select:focus, textarea:focus {
 }
 textarea { resize: vertical; font-family: var(--font-sans); }
 
+/* One chevron style for every <select> on the site, not just the home
+   page's search filters -- the browser's own arrow sits flush against the
+   edge and varies by platform, which reads as inconsistent next to the
+   custom dropdowns (filter-dropdown-toggle, combobox) built elsewhere. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230F172A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 16px 16px;
+  padding-right: 2.6rem;
+}
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F2F4F8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
 /* ---------- Badges ---------- */
 
 .badge {
@@ -680,6 +697,11 @@ main > .container { padding-top: 2rem; padding-bottom: 3rem; }
 }
 .admin-nav a:hover, .admin-nav button:hover { background: var(--overlay-mid); color: var(--color-ink); }
 .admin-nav a.active { background: rgba(242, 184, 75, 0.12); color: var(--color-gold-400); }
+/* display:flex above would otherwise win over the UA stylesheet's [hidden]
+   rule, since a class selector beats a plain attribute selector -- so a
+   permission-gated nav item (see _AdminLayout.cshtml) would stay visible
+   even while marked hidden. */
+.admin-nav a[hidden] { display: none; }
 .admin-nav svg { width: 18px; height: 18px; flex-shrink: 0; }
 .admin-sidebar .spacer { margin-top: auto; }
 .admin-sidebar .signed-in-as {

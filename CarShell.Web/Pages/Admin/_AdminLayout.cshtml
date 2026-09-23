@@ -27,7 +27,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
                     Upload Car
                 </a>
-                <a href="/admin/admins" class="@(ViewData["ActiveNav"]?.ToString() == "admins" ? "active" : "")">
+                <a href="/admin/admins" id="nav-manage-admins" hidden class="@(ViewData["ActiveNav"]?.ToString() == "admins" ? "active" : "")">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
                     Manage Admins
                 </a>
@@ -83,6 +83,13 @@
         // /api/settings/me answers. Exposed so the settings page itself
         // can ask this same topbar to refresh right after an avatar
         // upload, instead of the user needing a full reload to see it.
+        //
+        // The same response also drives which nav items even show up: the
+        // sidebar link starts `hidden` in the markup above (least-privilege
+        // default) and this is the one place, shared by every admin page,
+        // that reveals "Manage Admins" once we actually know the signed-in
+        // admin is a super admin -- a regular admin never sees a link to a
+        // page they'd just get a 403 from.
         async function refreshTopbarAvatar() {
             try {
                 const response = await CarShellAdmin.apiFetch('/api/settings/me');
@@ -95,6 +102,7 @@
                     avatarBtn.textContent = label.charAt(0).toUpperCase();
                 }
                 avatarEmail.textContent = label;
+                document.getElementById('nav-manage-admins').hidden = !settings.isSuperAdmin;
             } catch {
                 // The placeholder above stays put.
             }

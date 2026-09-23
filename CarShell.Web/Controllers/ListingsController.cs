@@ -109,19 +109,20 @@ public class ListingsController(
         return listing is null ? NotFound() : Ok(ToDetail(listing));
     }
 
-    // Backs the admin listing-management UI: every one of the caller's own
-    // listings regardless of status, not just Active ones like the public
-    // Search endpoint returns.
-    [HttpGet("mine")]
+    // Backs the Admin Dashboard's portfolio stats and inventory pipeline:
+    // every listing in the whole company's inventory regardless of status
+    // (not just Active ones like the public Search endpoint returns) and
+    // regardless of which admin uploaded it -- every admin gets the same
+    // company-wide view here. Governance (who the other admins are, and
+    // creating new ones) is the separate thing that stays super-admin-only,
+    // see AdminsController.
+    [HttpGet("portfolio")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> GetMine(CancellationToken ct)
+    public async Task<IActionResult> GetPortfolio(CancellationToken ct)
     {
-        var sellerId = User.GetUserId();
-
         var listings = await db.Listings.AsNoTracking()
-            .Where(l => l.SellerId == sellerId)
             .OrderByDescending(l => l.CreatedAt)
-            .Select(l => new MyListingSummary(
+            .Select(l => new PortfolioListingSummary(
                 l.Id, l.Make.Name, l.Model.Name, l.Year, l.Price, l.Status, l.Suburb.Name, l.Suburb.City,
                 l.Mileage, l.BodyType, l.Images.OrderBy(i => i.Position).Select(i => i.StorageKey).FirstOrDefault()))
             .ToListAsync(ct);
@@ -133,18 +134,25 @@ public class ListingsController(
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create([FromBody] CreateListingRequest request, CancellationToken ct)
     {
-        var vin = Vin.Normalize(request.Vin);
-        if (!Vin.IsValid(vin))
+        string? vin = null;
+        if (!string.IsNullOrWhiteSpace(request.Vin))
         {
-            return BadRequest("VIN must be 17 characters, using the standard VIN character set (no I, O, or Q).");
+            vin = Vin.Normalize(request.Vin);
+            if (!Vin.IsValid(vin))
+            {
+                return BadRequest("VIN must be 17 characters, using the standard VIN character set (no I, O, or Q).");
+            }
         }
 
         var sellerId = User.GetUserId();
 
-        var duplicate = await db.Listings.AnyAsync(l => l.SellerId == sellerId && l.Vin == vin, ct);
-        if (duplicate)
+        if (vin is not null)
         {
-            return Conflict("A listing with this VIN already exists for this seller.");
+            var duplicate = await db.Listings.AnyAsync(l => l.SellerId == sellerId && l.Vin == vin, ct);
+            if (duplicate)
+            {
+                return Conflict("A listing with this VIN already exists for this seller.");
+            }
         }
 
         var suburb = await db.Suburbs.FindAsync([request.SuburbId], ct);
@@ -499,7 +507,7 @@ public record ListingSummary(
     Guid Id, string Make, string Model, int Year, decimal Price, int Mileage, string Suburb, string City,
     string? CoverImageStorageKey);
 
-public record MyListingSummary(
+public record PortfolioListingSummary(
     Guid Id, string Make, string Model, int Year, decimal Price, ListingStatus Status, string Suburb, string City,
     int Mileage, BodyType BodyType, string? CoverImageStorageKey);
 
@@ -515,7 +523,7 @@ public record CreateListingRequest(
     TransmissionType Transmission,
     BodyType BodyType,
     string? Description,
-    string Vin,
+    string? Vin,
     int SuburbId);
 
 public record UpdateListingRequest(
@@ -557,7 +565,7 @@ public record ListingDetail(
     TransmissionType Transmission,
     BodyType BodyType,
     string? Description,
-    string Vin,
+    string? Vin,
     ListingStatus Status,
     int SuburbId,
     string? SuburbName,

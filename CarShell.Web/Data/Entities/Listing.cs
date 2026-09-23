@@ -29,9 +29,10 @@ public class Listing
     public BodyType BodyType { get; set; }
     public string? Description { get; set; }
 
-    // 17-character VIN; format-checked and de-duplicated per seller at the
-    // application layer, see ListingsController.
-    public string Vin { get; set; } = default!;
+    // 17-character VIN; optional (some listings just don't have one on
+    // hand yet), but format-checked and de-duplicated per seller at the
+    // application layer when it is provided -- see ListingsController.
+    public string? Vin { get; set; }
 
     public ListingStatus Status { get; set; } = ListingStatus.Draft;
 

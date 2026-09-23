@@ -198,7 +198,7 @@ public class ListingWriteTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetMine_returns_all_of_the_callers_listings_regardless_of_status()
+    public async Task GetPortfolio_returns_every_listing_regardless_of_seller_or_status()
     {
         var controller = BuildController();
         var created = (CreatedAtActionResult)await controller.Create(ValidCreateRequest(), default);
@@ -208,7 +208,7 @@ public class ListingWriteTests : IAsyncLifetime
         var otherSeller = new User { Id = Guid.NewGuid(), Email = $"{Guid.NewGuid():N}@test.local", Role = UserRole.Admin };
         _db.Users.Add(otherSeller);
         await _db.SaveChangesAsync();
-        _db.Listings.Add(new Listing
+        var otherListing = new Listing
         {
             Id = Guid.NewGuid(),
             SellerId = otherSeller.Id,
@@ -229,17 +229,21 @@ public class ListingWriteTests : IAsyncLifetime
             Location = NetTopologySuite.NtsGeometryServices.Instance
                 .CreateGeometryFactory(srid: 4326)
                 .CreatePoint(new Coordinate(_suburbLng, _suburbLat)),
-        });
+        };
+        _db.Listings.Add(otherListing);
         await _db.SaveChangesAsync();
 
-        var result = await controller.GetMine(default);
+        // The dashboard's portfolio view is company-wide, not scoped to the
+        // signed-in admin's own uploads -- so this returns both listings,
+        // from two different sellers, one of them Removed.
+        var result = await controller.GetPortfolio(default);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var mine = Assert.IsAssignableFrom<IEnumerable<MyListingSummary>>(ok.Value).ToList();
+        var portfolio = Assert.IsAssignableFrom<IEnumerable<PortfolioListingSummary>>(ok.Value).ToList();
 
-        var own = Assert.Single(mine);
-        Assert.Equal(listing.Id, own.Id);
-        Assert.Equal(ListingStatus.Removed, own.Status);
+        Assert.Equal(2, portfolio.Count);
+        Assert.Contains(portfolio, l => l.Id == listing.Id && l.Status == ListingStatus.Removed);
+        Assert.Contains(portfolio, l => l.Id == otherListing.Id && l.Status == ListingStatus.Active);
     }
 
     [Fact]

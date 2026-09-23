@@ -9,14 +9,15 @@ function carIconSvg() {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13l1.5-5A2 2 0 016.4 6.5h11.2A2 2 0 0119.5 8l1.5 5M5 13h14a1 1 0 011 1v4a1 1 0 01-1 1h-1a1 1 0 01-1-1v-1H7v1a1 1 0 01-1 1H5a1 1 0 01-1-1v-4a1 1 0 011-1z"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>';
 }
 
+// Only a super admin can manage the team, so a regular admin should never
+// see this card at all -- not even a "you can't access this" stub. This
+// same 403 doubles as the signal that hides "Manage Admins" in the sidebar
+// nav; see toggleSuperAdminNav in _AdminLayout.cshtml.
 async function loadGovernance() {
     const card = document.getElementById('governance-card');
     const response = await CarShellAdmin.apiFetch('/api/admin/admins');
 
     if (response.status === 403) {
-        card.hidden = false;
-        document.getElementById('governance-table').hidden = true;
-        document.getElementById('governance-restricted').hidden = false;
         return;
     }
     if (!response.ok) {
@@ -86,7 +87,7 @@ function renderSegBar(listings) {
 }
 
 async function loadListings() {
-    const response = await CarShellAdmin.apiFetch('/api/listings/mine');
+    const response = await CarShellAdmin.apiFetch('/api/listings/portfolio');
     const listings = await response.json();
 
     document.getElementById('loading-message').hidden = true;

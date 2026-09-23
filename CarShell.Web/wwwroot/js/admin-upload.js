@@ -248,7 +248,7 @@ async function loadExistingListing() {
     await populateModels(listing.makeId, listing.modelId);
     await populateSuburbs(listing.suburbId);
 
-    document.getElementById('vin').value = listing.vin;
+    document.getElementById('vin').value = listing.vin || '';
     document.getElementById('trim').value = listing.trim || '';
     document.getElementById('year').value = listing.year;
     document.getElementById('mileage').value = listing.mileage;
@@ -280,7 +280,7 @@ function readForm() {
         transmission: document.getElementById('transmission').value,
         bodyType: document.getElementById('body-type').value,
         description: document.getElementById('description').value || null,
-        vin: document.getElementById('vin').value,
+        vin: document.getElementById('vin').value || null,
         suburbId: Number(document.getElementById('suburb-id').value),
     };
 }
